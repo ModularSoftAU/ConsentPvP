@@ -1,12 +1,12 @@
-name: consentpvp
-version: '1.0-SNAPSHOT'
+name: ConsentPVP
+version: '1.0'
 main: org.modularsoft.consentpvp.ConsentPVP
 author: "ModularSoft"
-description: A plugin to manage PVP consent and combat in Minecraft.
+description: "Respect in Battle: ConsentPVP for a Better Gaming Experience!"
 commands:
   pvp:
     description: Manage your PVP consent and requests.
-    usage: /pvp <enable|disable|request|accept>
+    usage: /pvp <enable|disable>
     permission: consentpvp.use
     permission-message: You don't have permission to use this command.
 permissions:
