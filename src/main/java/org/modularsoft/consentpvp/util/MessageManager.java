@@ -19,6 +19,14 @@ public class MessageManager {
 
     public void sendMessage(Player player, String messageKey, String... replacements) {
         String message = plugin.getConfig().getString("messages." + messageKey);
+        if (message == null) {
+            plugin.getLogger().warning("Missing message key: messages." + messageKey);
+            return;
+        }
+        if (replacements.length % 2 != 0) {
+            plugin.getLogger().warning("Replacements array must have even number of elements");
+            return;
+        }
         for (int i = 0; i < replacements.length; i += 2) {
             message = message.replace(replacements[i], replacements[i + 1]);
         }

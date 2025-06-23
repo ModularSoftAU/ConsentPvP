@@ -34,4 +34,13 @@ public class CooldownManager {
     public Long getLastToggleTime(UUID playerId) {
         return cooldowns.get(playerId);
     }
+
+    public void cleanupExpiredCooldowns() {
+        long currentTime = System.currentTimeMillis();
+        long cooldownDuration = TimeUnit.MINUTES.toMillis(plugin.getConfig().getLong("cooldown.duration"));
+
+        cooldowns.entrySet().removeIf(entry ->
+                (currentTime - entry.getValue()) >= cooldownDuration
+        );
+    }
 }

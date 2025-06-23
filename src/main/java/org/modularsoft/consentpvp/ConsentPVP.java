@@ -35,6 +35,11 @@ public class ConsentPVP extends JavaPlugin {
 
         // Load configuration
         saveDefaultConfig();
+
+        // Schedule periodic cleanup every 5 minutes (6000 ticks)
+        getServer().getScheduler().runTaskTimer(this, () -> {
+            cooldownManager.cleanupExpiredCooldowns();
+        }, 6000L, 6000L);
     }
 
     public CooldownManager getCooldownManager() {

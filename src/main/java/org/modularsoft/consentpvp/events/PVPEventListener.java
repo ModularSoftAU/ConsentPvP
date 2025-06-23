@@ -4,11 +4,15 @@ import org.bukkit.entity.*;
 import org.bukkit.event.EventHandler;
 import org.bukkit.event.Listener;
 import org.bukkit.event.entity.*;
+import org.bukkit.event.player.PlayerJoinEvent;
+import org.bukkit.event.player.PlayerQuitEvent;
 import org.bukkit.projectiles.ProjectileSource;
 import org.modularsoft.consentpvp.ConsentPVP;
 import org.modularsoft.consentpvp.util.PVPManager;
 
+import java.util.ArrayList;
 import java.util.Iterator;
+import java.util.List;
 
 public class PVPEventListener implements Listener {
 
@@ -16,6 +20,17 @@ public class PVPEventListener implements Listener {
 
     public PVPEventListener(ConsentPVP plugin) {
         this.plugin = plugin;
+    }
+
+    @EventHandler
+    public void onPlayerJoin(PlayerJoinEvent event) {
+        plugin.getPVPManager().loadConsentForPlayer(event.getPlayer());
+    }
+
+    @EventHandler
+    public void onPlayerQuit(PlayerQuitEvent event) {
+        plugin.getPVPManager().saveConsentForPlayer(event.getPlayer());
+        plugin.getPVPManager().cleanupOfflinePlayers();
     }
 
     // Core: Handles most direct and indirect entity damage
@@ -53,25 +68,33 @@ public class PVPEventListener implements Listener {
         }
     }
 
-    // Potions: Splash and Lingering
+    // Potions: Splash
     @EventHandler
     public void onPotionSplash(PotionSplashEvent event) {
         if (!(event.getPotion().getShooter() instanceof Player)) return;
         Player attacker = (Player) event.getPotion().getShooter();
         PVPManager pvpManager = plugin.getPVPManager();
 
+        List<String> nonConsentedDefenders = new ArrayList<>();
+
         event.getAffectedEntities().forEach(entity -> {
             if (entity instanceof Player) {
                 Player defender = (Player) entity;
                 if (!pvpManager.hasConsent(defender.getUniqueId()) || !pvpManager.hasConsent(attacker.getUniqueId())) {
                     event.setIntensity(defender, 0);
-                    plugin.getMessageManager().sendMessage(attacker, "pvp_not_consented_attacker", "%player%", defender.getName());
+                    nonConsentedDefenders.add(defender.getName());
                     plugin.getMessageManager().sendMessage(defender, "pvp_not_consented_defender", "%player%", attacker.getName());
                 }
             }
         });
+
+        if (!nonConsentedDefenders.isEmpty()) {
+            String joinedNames = String.join(", ", nonConsentedDefenders);
+            plugin.getMessageManager().sendMessage(attacker, "pvp_not_consented_attacker_multiple", "%players%", joinedNames);
+        }
     }
 
+    // Potions: Lingering (Area Effect Cloud)
     @EventHandler
     public void onAreaEffectCloudApply(AreaEffectCloudApplyEvent event) {
         AreaEffectCloud cloud = event.getEntity();
@@ -83,6 +106,7 @@ public class PVPEventListener implements Listener {
         Player attacker = (Player) potion.getShooter();
         PVPManager pvpManager = plugin.getPVPManager();
 
+        List<String> nonConsentedDefenders = new ArrayList<>();
         Iterator<LivingEntity> it = event.getAffectedEntities().iterator();
         while (it.hasNext()) {
             LivingEntity entity = it.next();
@@ -90,10 +114,15 @@ public class PVPEventListener implements Listener {
                 Player defender = (Player) entity;
                 if (!pvpManager.hasConsent(defender.getUniqueId()) || !pvpManager.hasConsent(attacker.getUniqueId())) {
                     it.remove();
-                    plugin.getMessageManager().sendMessage(attacker, "pvp_not_consented_attacker", "%player%", defender.getName());
+                    nonConsentedDefenders.add(defender.getName());
                     plugin.getMessageManager().sendMessage(defender, "pvp_not_consented_defender", "%player%", attacker.getName());
                 }
             }
+        }
+
+        if (!nonConsentedDefenders.isEmpty()) {
+            String joinedNames = String.join(", ", nonConsentedDefenders);
+            plugin.getMessageManager().sendMessage(attacker, "pvp_not_consented_attacker_multiple", "%players%", joinedNames);
         }
     }
 }
