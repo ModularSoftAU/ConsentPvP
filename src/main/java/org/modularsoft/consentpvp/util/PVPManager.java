@@ -57,12 +57,11 @@ public class PVPManager {
     }
 
     public void cleanupOfflinePlayers() {
-        for (UUID uuid : pvpConsent.keySet()) {
+        pvpConsent.entrySet().removeIf(entry -> {
+            UUID uuid = entry.getKey();
             OfflinePlayer offlinePlayer = Bukkit.getOfflinePlayer(uuid);
-            if (!offlinePlayer.isOnline()) {
-                pvpConsent.remove(uuid);
-            }
-        }
+            return !offlinePlayer.isOnline();
+        });
     }
 
     public void loadConsentForPlayer(Player player) {
