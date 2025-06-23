@@ -1,34 +1,55 @@
 # ConsentPVP
 
 ## Overview
-ConsentPVP is a Minecraft plugin designed to enhance player versus player (PVP) interactions by requiring mutual consent before combat can occur. This plugin allows players to enable or disable PVP, send and accept PVP requests, and includes features to prevent abuse and ensure fair gameplay.
+
+**ConsentPVP** is a Minecraft plugin that enhances player versus player (PvP) interactions by requiring mutual consent before any combat can occur. The plugin empowers players to control their PvP status, send and accept PvP requests, and ensures fair gameplay by preventing unconsented PvP in all forms.
+
+---
 
 ## Features
-* PVP Consent: Players can enable or disable PVP using simple commands.
-* Cooldowns: Admins can set cooldowns between PVP toggles to prevent abuse.
-* Customizable Messages: Supports MiniMessage formatting for rich text messages.
+
+- **Mutual PvP Consent:** Players can enable or disable PvP for themselves using simple commands. PvP only occurs when both parties have consented.
+- **Cooldowns:** Admins can configure cooldown periods between PvP toggles to prevent abuse.
+- **Customizable Messages:** Supports MiniMessage formatting for rich, customizable in-game messages.
+- **Comprehensive Protection:** Blocks all direct and indirect forms of PvP damage unless both players have consented.
+
+---
 
 ## Installation
-* Download the Plugin: Obtain the latest version of the ConsentPVP plugin JAR file.
-* Install the Plugin: Place the JAR file in the plugins directory of your Minecraft server.
-* Restart the Server: Restart your server to load the plugin.
+
+1. **Download the Plugin:** Obtain the latest ConsentPVP plugin JAR file via our [Releases Page](https://github.com/ModularSoftAU/ConsentPvP/releases).
+2. **Install the Plugin:** Place the JAR file in your server's `plugins` directory.
+3. **Restart the Server:** Restart your server to load ConsentPVP.
+
+---
 
 ## Commands
-| Command                 | Description                                    |
-|-------------------------|------------------------------------------------|
-| `/pvp`                  | Displays the PVP status and available actions. |
-| `/pvp enable`           | Enable PVP consent.                            |
-| `/pvp disable`          | Disable PVP consent.                           |
+
+| Command           | Description                                    |
+|-------------------|------------------------------------------------|
+| `/pvp`            | Displays your PvP status and available actions.|
+| `/pvp enable`     | Enable PvP consent for yourself.               |
+| `/pvp disable`    | Disable PvP consent for yourself.              |
+
+---
 
 ## Permissions
-| Permission       | Description                                                |
-|------------------|------------------------------------------------------------|
-| `consentpvp.use`   | Allows players to use the /pvp command.                    |
-| `consentpvp.admin` | Allows admins to bypass cooldowns and combat restrictions. |
+
+| Permission           | Description                                               |
+|----------------------|----------------------------------------------------------|
+| `consentpvp.use`     | Allows players to use the `/pvp` command.                |
+| `consentpvp.admin`   | Allows admins to bypass cooldowns and combat restrictions.|
+
+---
 
 ## Usage
-Enable PVP: Use `/pvp enable` to enable PVP consent.
-Disable PVP: Use `/pvp disable` to disable PVP consent when not in combat.
+
+- **Enable PvP:** Use `/pvp enable` to allow others to engage in PvP with you (if they have also enabled consent).
+- **Disable PvP:** Use `/pvp disable` to prevent all PvP interactions with you.
+- **Check Status:** Use `/pvp` to check your current PvP status and see if you can engage in combat with others.
+
+---
 
 ## Support
-If you encounter any issues or have suggestions for improvements, please open an issue on our GitHub repository or join our Discord.
+
+If you encounter issues or have suggestions, please open an issue on our GitHub repository or join our Discord community for support.

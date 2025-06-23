@@ -1,11 +1,14 @@
 package org.modularsoft.consentpvp.events;
 
-import org.bukkit.entity.Player;
+import org.bukkit.entity.*;
 import org.bukkit.event.EventHandler;
 import org.bukkit.event.Listener;
-import org.bukkit.event.entity.EntityDamageByEntityEvent;
+import org.bukkit.event.entity.*;
+import org.bukkit.projectiles.ProjectileSource;
 import org.modularsoft.consentpvp.ConsentPVP;
 import org.modularsoft.consentpvp.util.PVPManager;
+
+import java.util.Iterator;
 
 public class PVPEventListener implements Listener {
 
@@ -15,13 +18,33 @@ public class PVPEventListener implements Listener {
         this.plugin = plugin;
     }
 
+    // Core: Handles most direct and indirect entity damage
     @EventHandler
     public void onEntityDamageByEntity(EntityDamageByEntityEvent event) {
-        if (event.getEntity() instanceof Player && event.getDamager() instanceof Player) {
-            Player defender = (Player) event.getEntity();
-            Player attacker = (Player) event.getDamager();
+        if (!(event.getEntity() instanceof Player)) return;
+        Player defender = (Player) event.getEntity();
+        PVPManager pvpManager = plugin.getPVPManager();
 
-            PVPManager pvpManager = plugin.getPVPManager();
+        Player attacker = null;
+
+        // Direct melee
+        if (event.getDamager() instanceof Player) {
+            attacker = (Player) event.getDamager();
+        }
+
+        // Projectile (arrow, trident, snowball, egg, potion, firework, etc.)
+        else if (event.getDamager() instanceof Projectile) {
+            ProjectileSource shooter = ((Projectile) event.getDamager()).getShooter();
+            if (shooter instanceof Player) attacker = (Player) shooter;
+        }
+
+        // TNT, End Crystal, Firework, etc.
+        else if (event.getDamager() instanceof TNTPrimed) {
+            TNTPrimed tnt = (TNTPrimed) event.getDamager();
+            if (tnt.getSource() instanceof Player) attacker = (Player) tnt.getSource();
+        }
+
+        if (attacker != null) {
             if (!pvpManager.hasConsent(defender.getUniqueId()) || !pvpManager.hasConsent(attacker.getUniqueId())) {
                 event.setCancelled(true);
                 plugin.getMessageManager().sendMessage(attacker, "pvp_not_consented_attacker", "%player%", defender.getName());
@@ -29,5 +52,48 @@ public class PVPEventListener implements Listener {
             }
         }
     }
-}
 
+    // Potions: Splash and Lingering
+    @EventHandler
+    public void onPotionSplash(PotionSplashEvent event) {
+        if (!(event.getPotion().getShooter() instanceof Player)) return;
+        Player attacker = (Player) event.getPotion().getShooter();
+        PVPManager pvpManager = plugin.getPVPManager();
+
+        event.getAffectedEntities().forEach(entity -> {
+            if (entity instanceof Player) {
+                Player defender = (Player) entity;
+                if (!pvpManager.hasConsent(defender.getUniqueId()) || !pvpManager.hasConsent(attacker.getUniqueId())) {
+                    event.setIntensity(defender, 0);
+                    plugin.getMessageManager().sendMessage(attacker, "pvp_not_consented_attacker", "%player%", defender.getName());
+                    plugin.getMessageManager().sendMessage(defender, "pvp_not_consented_defender", "%player%", attacker.getName());
+                }
+            }
+        });
+    }
+
+    @EventHandler
+    public void onAreaEffectCloudApply(AreaEffectCloudApplyEvent event) {
+        AreaEffectCloud cloud = event.getEntity();
+        if (!(cloud.getSource() instanceof ThrownPotion)) return;
+
+        ThrownPotion potion = (ThrownPotion) cloud.getSource();
+        if (!(potion.getShooter() instanceof Player)) return;
+
+        Player attacker = (Player) potion.getShooter();
+        PVPManager pvpManager = plugin.getPVPManager();
+
+        Iterator<LivingEntity> it = event.getAffectedEntities().iterator();
+        while (it.hasNext()) {
+            LivingEntity entity = it.next();
+            if (entity instanceof Player) {
+                Player defender = (Player) entity;
+                if (!pvpManager.hasConsent(defender.getUniqueId()) || !pvpManager.hasConsent(attacker.getUniqueId())) {
+                    it.remove();
+                    plugin.getMessageManager().sendMessage(attacker, "pvp_not_consented_attacker", "%player%", defender.getName());
+                    plugin.getMessageManager().sendMessage(defender, "pvp_not_consented_defender", "%player%", attacker.getName());
+                }
+            }
+        }
+    }
+}
