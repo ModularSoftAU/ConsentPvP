@@ -59,6 +59,11 @@ public class PVPEventListener implements Listener {
             if (tnt.getSource() instanceof Player) attacker = (Player) tnt.getSource();
         }
 
+        // Allow self-damage (such as Ender Pearl teleportation)
+        if (attacker.getUniqueId().equals(defender.getUniqueId())) {
+            return; // Do not cancel self-inflicted damage
+        }
+
         if (attacker != null) {
             if (!pvpManager.hasConsent(defender.getUniqueId()) || !pvpManager.hasConsent(attacker.getUniqueId())) {
                 event.setCancelled(true);
