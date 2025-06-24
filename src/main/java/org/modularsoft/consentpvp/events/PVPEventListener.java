@@ -85,6 +85,12 @@ public class PVPEventListener implements Listener {
         event.getAffectedEntities().forEach(entity -> {
             if (entity instanceof Player) {
                 Player defender = (Player) entity;
+
+                // Allow self-harm: skip consent check if attacker == defender
+                if (attacker.getUniqueId().equals(defender.getUniqueId())) {
+                    return;
+                }
+
                 if (!pvpManager.hasConsent(defender.getUniqueId()) || !pvpManager.hasConsent(attacker.getUniqueId())) {
                     event.setIntensity(defender, 0);
                     nonConsentedDefenders.add(defender.getName());
@@ -117,6 +123,12 @@ public class PVPEventListener implements Listener {
             LivingEntity entity = it.next();
             if (entity instanceof Player) {
                 Player defender = (Player) entity;
+
+                // Allow self-harm: skip consent check if attacker == defender
+                if (attacker.getUniqueId().equals(defender.getUniqueId())) {
+                    continue;
+                }
+
                 if (!pvpManager.hasConsent(defender.getUniqueId()) || !pvpManager.hasConsent(attacker.getUniqueId())) {
                     it.remove();
                     nonConsentedDefenders.add(defender.getName());
