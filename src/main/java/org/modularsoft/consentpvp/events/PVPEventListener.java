@@ -142,4 +142,13 @@ public class PVPEventListener implements Listener {
             plugin.getMessageManager().sendMessage(attacker, "pvp_not_consented_attacker_multiple", "%players%", joinedNames);
         }
     }
+
+    @EventHandler
+    public void onPlayerDeath(PlayerDeathEvent event) {
+        if (plugin.isPvpDisabledOnDeath()) {
+            Player player = event.getEntity();
+            plugin.getPVPManager().setConsent(player.getUniqueId(), false);
+            plugin.getMessageManager().sendMessage(player, "pvp_disabled_on_death");
+        }
+    }
 }

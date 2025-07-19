@@ -62,8 +62,22 @@ public class PVPCommand implements CommandExecutor {
                 cooldownManager.setCooldown(player.getUniqueId());
                 messageManager.sendMessage(player, "pvp_disabled");
                 break;
+            case "death":
+                if (!sender.hasPermission("consentpvp.admin")) {
+                    messageManager.sendMessage(player, "no_permission");
+                    return true;
+                }
+
+                boolean pvpOnDeath = plugin.getConfig().getBoolean("pvp.disable-on-death");
+                plugin.getConfig().set("pvp.disable-on-death", !pvpOnDeath);
+                plugin.saveConfig();
+                plugin.reloadConfig();
+
+                String status = !pvpOnDeath ? "enabled" : "disabled";
+                messageManager.sendMessage(player, "pvp_death_toggle", "%status%", status);
+                break;
             default:
-                player.sendMessage(miniMessage.deserialize(messagePrefix + "<red>Usage: /pvp <enable|disable>"));
+                player.sendMessage(miniMessage.deserialize(messagePrefix + "<red>Usage: /pvp <enable|disable|death>"));
                 break;
         }
 

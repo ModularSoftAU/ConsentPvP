@@ -16,6 +16,7 @@ public class ConsentPVP extends JavaPlugin {
 
     private MiniMessage miniMessage;
     private String messagePrefix;
+    private boolean disablePvpOnDeath;
 
     @Override
     public void onEnable() {
@@ -25,16 +26,19 @@ public class ConsentPVP extends JavaPlugin {
         this.messageManager = new MessageManager(this);
 
         this.miniMessage = MiniMessage.miniMessage();
+
+        // Load configuration
+        saveDefaultConfig();
+        reloadConfig();
         this.messagePrefix = getConfig().getString("messages.prefix", "<gray>[<red>ConsentPVP<gray>] <white>");
+        this.disablePvpOnDeath = getConfig().getBoolean("pvp.disable-on-death", false);
+
 
         // Register commands
         getCommand("pvp").setExecutor(new PVPCommand(this));
 
         // Register event listeners
         getServer().getPluginManager().registerEvents(new PVPEventListener(this), this);
-
-        // Load configuration
-        saveDefaultConfig();
 
         // Schedule periodic cleanup every 5 minutes (6000 ticks)
         getServer().getScheduler().runTaskTimer(this, () -> {
@@ -61,5 +65,9 @@ public class ConsentPVP extends JavaPlugin {
 
     public String getMessagePrefix() {
         return messagePrefix;
+    }
+
+    public boolean isPvpDisabledOnDeath() {
+        return disablePvpOnDeath;
     }
 }
