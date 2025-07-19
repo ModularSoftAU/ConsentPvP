@@ -1,0 +1,11 @@
+cooldown:
+  # Duration in minutes before a player can toggle PVP consent again
+  duration: 5
+
+messages:
+  prefix: "<bold><gray>[<red>ConsentPVP<gray>]</bold> <white>"
+  pvp_enabled: "<green>PVP consent enabled."
+  pvp_disabled: "<red>PVP consent disabled."
+  on_cooldown: "<red>You must wait %time% before toggling PVP again."
+  pvp_not_consented_attacker: "<red>You tried to hit %player% but PVP is not consented."
+  pvp_not_consented_defender: "<red>%player% tried to hit you but PVP is not consented."
