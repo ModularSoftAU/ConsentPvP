@@ -13,6 +13,7 @@ public class ConsentPVP extends JavaPlugin {
     private CooldownManager cooldownManager;
     private PVPManager pvpManager;
     private MessageManager messageManager;
+    private EndCrystalManager endCrystalManager;
 
     private MiniMessage miniMessage;
     private String messagePrefix;
@@ -24,6 +25,7 @@ public class ConsentPVP extends JavaPlugin {
         this.cooldownManager = new CooldownManager(this);
         this.pvpManager = new PVPManager(this);
         this.messageManager = new MessageManager(this);
+        this.endCrystalManager = new EndCrystalManager();
 
         this.miniMessage = MiniMessage.miniMessage();
 
@@ -36,6 +38,7 @@ public class ConsentPVP extends JavaPlugin {
 
         // Register commands
         getCommand("pvp").setExecutor(new PVPCommand(this));
+        getCommand("pvp").setTabCompleter(new org.modularsoft.consentpvp.commands.PVPTabCompleter());
 
         // Register event listeners
         getServer().getPluginManager().registerEvents(new PVPEventListener(this), this);
@@ -57,6 +60,10 @@ public class ConsentPVP extends JavaPlugin {
 
     public MessageManager getMessageManager() {
         return messageManager;
+    }
+
+    public EndCrystalManager getEndCrystalManager() {
+        return endCrystalManager;
     }
 
     public MiniMessage getMiniMessage() {

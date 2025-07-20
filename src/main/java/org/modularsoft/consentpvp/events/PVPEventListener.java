@@ -57,6 +57,12 @@ public class PVPEventListener implements Listener {
         else if (event.getDamager() instanceof TNTPrimed) {
             TNTPrimed tnt = (TNTPrimed) event.getDamager();
             if (tnt.getSource() instanceof Player) attacker = (Player) tnt.getSource();
+        } else if (event.getDamager() instanceof EnderCrystal) {
+            EnderCrystal crystal = (EnderCrystal) event.getDamager();
+            UUID ownerUUID = plugin.getEndCrystalManager().getOwner(crystal);
+            if (ownerUUID != null) {
+                attacker = plugin.getServer().getPlayer(ownerUUID);
+            }
         }
 
         // Allow self-damage (such as Ender Pearl teleportation)
@@ -149,6 +155,27 @@ public class PVPEventListener implements Listener {
             Player player = event.getEntity();
             plugin.getPVPManager().setConsent(player.getUniqueId(), false);
             plugin.getMessageManager().sendMessage(player, "pvp_disabled_on_death");
+        }
+    }
+
+    @EventHandler
+    public void onPlayerInteract(PlayerInteractEvent event) {
+        if (event.getAction().isRightClick() && event.getItem() != null && event.getItem().getType() == org.bukkit.Material.END_CRYSTAL) {
+            Player player = event.getPlayer();
+            plugin.getServer().getScheduler().runTaskLater(plugin, () -> {
+                for (Entity entity : player.getNearbyEntities(5, 5, 5)) {
+                    if (entity instanceof EnderCrystal) {
+                        plugin.getEndCrystalManager().addCrystal((EnderCrystal) entity, player.getUniqueId());
+                    }
+                }
+            }, 1L);
+        }
+    }
+
+    @EventHandler
+    public void onEntityExplode(EntityExplodeEvent event) {
+        if (event.getEntity() instanceof EnderCrystal) {
+            plugin.getEndCrystalManager().removeCrystal((EnderCrystal) event.getEntity());
         }
     }
 }

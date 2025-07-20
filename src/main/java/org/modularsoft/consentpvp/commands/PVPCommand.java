@@ -35,13 +35,16 @@ public class PVPCommand implements CommandExecutor {
         MessageManager messageManager = plugin.getMessageManager();
 
         if (args.length == 0) {
-            player.sendMessage(miniMessage.deserialize(messagePrefix + "<red>Usage: /pvp <enable|disable>"));
+            showStatus(player, pvpManager, messageManager);
             return true;
         }
 
         String action = args[0].toLowerCase();
 
         switch (action) {
+            case "status":
+                showStatus(player, pvpManager, messageManager);
+                break;
             case "enable":
                 if (cooldownManager.isOnCooldown(player.getUniqueId())) {
                     String remainingTime = messageManager.getRemainingCooldownTime(player.getUniqueId());
@@ -77,10 +80,16 @@ public class PVPCommand implements CommandExecutor {
                 messageManager.sendMessage(player, "pvp_death_toggle", "%status%", status);
                 break;
             default:
-                player.sendMessage(miniMessage.deserialize(messagePrefix + "<red>Usage: /pvp <enable|disable|death>"));
+                player.sendMessage(miniMessage.deserialize(messagePrefix + "<red>Usage: /pvp <enable|disable|death|status>"));
                 break;
         }
 
         return true;
+    }
+
+    private void showStatus(Player player, PVPManager pvpManager, MessageManager messageManager) {
+        boolean hasConsent = pvpManager.hasConsent(player.getUniqueId());
+        String status = hasConsent ? "enabled" : "disabled";
+        messageManager.sendMessage(player, "pvp_status", "%status%", status);
     }
 }

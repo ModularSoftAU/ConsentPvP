@@ -27,7 +27,8 @@
 
 | Command           | Description                                    |
 |-------------------|------------------------------------------------|
-| `/pvp`            | Displays your PvP status and available actions.|
+| `/pvp`            | Displays your PvP status.                      |
+| `/pvp status`     | Displays your PvP status.                      |
 | `/pvp enable`     | Enable PvP consent for yourself.               |
 | `/pvp disable`    | Disable PvP consent for yourself.              |
 | `/pvp death`      | Toggles whether PVP is disabled on death.      |
