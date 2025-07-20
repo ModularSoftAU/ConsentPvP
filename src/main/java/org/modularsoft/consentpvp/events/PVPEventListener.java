@@ -60,7 +60,7 @@ public class PVPEventListener implements Listener {
         }
 
         // Allow self-damage (such as Ender Pearl teleportation)
-        if (attacker == null || attacker.getUniqueId().equals(defender.getUniqueId())) {
+        if (attacker.getUniqueId().equals(defender.getUniqueId())) {
             return; // Do not cancel self-inflicted damage
         }
 
