@@ -74,7 +74,6 @@ public class PVPCommand implements CommandExecutor {
                 boolean pvpOnDeath = plugin.getConfig().getBoolean("pvp.disable-on-death");
                 plugin.getConfig().set("pvp.disable-on-death", !pvpOnDeath);
                 plugin.saveConfig();
-                plugin.reloadConfig();
 
                 String status = !pvpOnDeath ? "enabled" : "disabled";
                 messageManager.sendMessage(player, "pvp_death_toggle", "%status%", status);

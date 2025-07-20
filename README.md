@@ -67,6 +67,7 @@ messages:
   no_permission: "<red>You don't have permission to use this command."
   pvp_death_toggle: "<green>PVP disable on death is now %status%."
   pvp_disabled_on_death: "<red>Your PVP has been disabled due to your death."
+  pvp_status: "<white>Your PVP status is currently <green>%status%<white>."
 ```
 
 ## Usage
