@@ -160,15 +160,27 @@ public class PVPEventListener implements Listener {
 
     @EventHandler
     public void onPlayerInteract(PlayerInteractEvent event) {
-        if (event.getAction().isRightClick() && event.getItem() != null && event.getItem().getType() == org.bukkit.Material.END_CRYSTAL) {
-            Player player = event.getPlayer();
-            plugin.getServer().getScheduler().runTaskLater(plugin, () -> {
-                for (Entity entity : player.getNearbyEntities(5, 5, 5)) {
-                    if (entity instanceof EnderCrystal) {
-                        plugin.getEndCrystalManager().addCrystal((EnderCrystal) entity, player.getUniqueId());
+        if (event.getAction().isRightClick() && event.getItem() != null) {
+            if (event.getItem().getType() == org.bukkit.Material.END_CRYSTAL) {
+                Player player = event.getPlayer();
+                plugin.getServer().getScheduler().runTaskLater(plugin, () -> {
+                    for (Entity entity : player.getNearbyEntities(5, 5, 5)) {
+                        if (entity instanceof EnderCrystal) {
+                            plugin.getEndCrystalManager().addCrystal((EnderCrystal) entity, player.getUniqueId());
+                        }
+                    }
+                }, 1L);
+            } else if (event.getItem().getType() == org.bukkit.Material.GLOWSTONE && event.getClickedBlock() != null && event.getClickedBlock().getType() == org.bukkit.Material.RESPAWN_ANCHOR) {
+                Player player = event.getPlayer();
+                UUID ownerUUID = plugin.getRespawnAnchorManager().getOwner(event.getClickedBlock());
+                if (ownerUUID != null && !ownerUUID.equals(player.getUniqueId())) {
+                    Player owner = plugin.getServer().getPlayer(ownerUUID);
+                    if (owner != null && !plugin.getPVPManager().hasConsent(owner.getUniqueId()) || !plugin.getPVPManager().hasConsent(player.getUniqueId())) {
+                        event.setCancelled(true);
+                        plugin.getMessageManager().sendMessage(player, "pvp_not_consented_attacker", "%player%", owner.getName());
                     }
                 }
-            }, 1L);
+            }
         }
     }
 
@@ -176,6 +188,20 @@ public class PVPEventListener implements Listener {
     public void onEntityExplode(EntityExplodeEvent event) {
         if (event.getEntity() instanceof EnderCrystal) {
             plugin.getEndCrystalManager().removeCrystal((EnderCrystal) event.getEntity());
+        }
+    }
+
+    @EventHandler
+    public void onBlockPlace(BlockPlaceEvent event) {
+        if (event.getBlock().getType() == org.bukkit.Material.RESPAWN_ANCHOR) {
+            plugin.getRespawnAnchorManager().addAnchor(event.getBlock(), event.getPlayer().getUniqueId());
+        }
+    }
+
+    @EventHandler
+    public void onBlockBreak(BlockBreakEvent event) {
+        if (event.getBlock().getType() == org.bukkit.Material.RESPAWN_ANCHOR) {
+            plugin.getRespawnAnchorManager().removeAnchor(event.getBlock());
         }
     }
 }

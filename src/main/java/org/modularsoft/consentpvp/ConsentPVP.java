@@ -14,6 +14,7 @@ public class ConsentPVP extends JavaPlugin {
     private PVPManager pvpManager;
     private MessageManager messageManager;
     private EndCrystalManager endCrystalManager;
+    private RespawnAnchorManager respawnAnchorManager;
 
     private MiniMessage miniMessage;
     private String messagePrefix;
@@ -26,6 +27,7 @@ public class ConsentPVP extends JavaPlugin {
         this.pvpManager = new PVPManager(this);
         this.messageManager = new MessageManager(this);
         this.endCrystalManager = new EndCrystalManager();
+        this.respawnAnchorManager = new RespawnAnchorManager();
 
         this.miniMessage = MiniMessage.miniMessage();
 
@@ -64,6 +66,10 @@ public class ConsentPVP extends JavaPlugin {
 
     public EndCrystalManager getEndCrystalManager() {
         return endCrystalManager;
+    }
+
+    public RespawnAnchorManager getRespawnAnchorManager() {
+        return respawnAnchorManager;
     }
 
     public MiniMessage getMiniMessage() {
