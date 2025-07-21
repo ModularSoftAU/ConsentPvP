@@ -4,9 +4,7 @@ import net.kyori.adventure.text.minimessage.MiniMessage;
 import org.bukkit.plugin.java.JavaPlugin;
 import org.modularsoft.consentpvp.commands.PVPCommand;
 import org.modularsoft.consentpvp.events.PVPEventListener;
-import org.modularsoft.consentpvp.util.CooldownManager;
-import org.modularsoft.consentpvp.util.MessageManager;
-import org.modularsoft.consentpvp.util.PVPManager;
+import org.modularsoft.consentpvp.util.*;
 
 public class ConsentPVP extends JavaPlugin {
 
