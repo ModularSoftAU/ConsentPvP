@@ -27,9 +27,11 @@
 
 | Command           | Description                                    |
 |-------------------|------------------------------------------------|
-| `/pvp`            | Displays your PvP status and available actions.|
+| `/pvp`            | Displays your PvP status.                      |
+| `/pvp status`     | Displays your PvP status.                      |
 | `/pvp enable`     | Enable PvP consent for yourself.               |
 | `/pvp disable`    | Disable PvP consent for yourself.              |
+| `/pvp death`      | Toggles whether PVP is disabled on death.      |
 
 ---
 
@@ -41,6 +43,32 @@
 | `consentpvp.admin`   | Allows admins to bypass cooldowns and combat restrictions.|
 
 ---
+
+## Configuration
+
+The `config.yml` file allows you to customize the plugin's behavior.
+
+```yaml
+pvp:
+  # If true, players will have their PVP consent disabled upon death.
+  disable-on-death: false
+
+cooldown:
+  # Duration in minutes before a player can toggle PVP consent again
+  duration: 5
+
+messages:
+  prefix: "<bold><gray>[<red>ConsentPVP<gray>]</bold> <white>"
+  pvp_enabled: "<green>PVP consent enabled."
+  pvp_disabled: "<red>PVP consent disabled."
+  on_cooldown: "<red>You must wait %time% before toggling PVP again."
+  pvp_not_consented_attacker: "<red>You tried to hit %player% but PVP is not consented."
+  pvp_not_consented_defender: "<red>%player% tried to hit you but PVP is not consented."
+  no_permission: "<red>You don't have permission to use this command."
+  pvp_death_toggle: "<green>PVP disable on death is now %status%."
+  pvp_disabled_on_death: "<red>Your PVP has been disabled due to your death."
+  pvp_status: "<white>Your PVP status is currently <green>%status%<white>."
+```
 
 ## Usage
 
