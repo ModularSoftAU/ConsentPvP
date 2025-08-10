@@ -3,6 +3,7 @@ package org.modularsoft.consentpvp.events;
 import org.bukkit.entity.*;
 import org.bukkit.event.EventHandler;
 import org.bukkit.event.Listener;
+import org.bukkit.event.entity.EntityDamageEvent;
 import org.bukkit.event.entity.*;
 import org.bukkit.event.player.PlayerJoinEvent;
 import org.bukkit.event.player.PlayerQuitEvent;
@@ -140,6 +141,30 @@ public class PVPEventListener implements Listener {
         if (!nonConsentedDefenders.isEmpty()) {
             String joinedNames = String.join(", ", nonConsentedDefenders);
             plugin.getMessageManager().sendMessage(attacker, "pvp_not_consented_attacker_multiple", "%players%", joinedNames);
+        }
+    }
+
+    // Handles Mace AOE Smash Attack
+    @EventHandler
+    public void onEntitySweepAttack(EntityDamageByEntityEvent event) {
+        if (event.getCause() != EntityDamageEvent.DamageCause.ENTITY_SWEEP_ATTACK) return;
+        if (!(event.getEntity() instanceof Player)) return;
+        if (!(event.getDamager() instanceof Player)) return;
+
+        Player defender = (Player) event.getEntity();
+        Player attacker = (Player) event.getDamager();
+        PVPManager pvpManager = plugin.getPVPManager();
+
+        // Allow self-damage
+        if (attacker.getUniqueId().equals(defender.getUniqueId())) {
+            return;
+        }
+
+        if (!pvpManager.hasConsent(defender.getUniqueId()) || !pvpManager.hasConsent(attacker.getUniqueId())) {
+            event.setCancelled(true);
+            // Silently cancel the event to prevent message spam in chat.
+            // The original attacker and target are in a consensual fight.
+            // Bystanders should not be notified.
         }
     }
 }
