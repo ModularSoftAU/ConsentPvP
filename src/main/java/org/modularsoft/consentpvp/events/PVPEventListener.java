@@ -3,6 +3,7 @@ package org.modularsoft.consentpvp.events;
 import org.bukkit.entity.*;
 import org.bukkit.event.EventHandler;
 import org.bukkit.event.Listener;
+import org.bukkit.event.entity.EntityDamageEvent;
 import org.bukkit.event.block.BlockBreakEvent;
 import org.bukkit.event.block.BlockPlaceEvent;
 import org.bukkit.event.entity.*;
@@ -180,6 +181,30 @@ public class PVPEventListener implements Listener {
     public void onBlockBreak(BlockBreakEvent event) {
         if (event.getBlock().getType() == org.bukkit.Material.RESPAWN_ANCHOR) {
             plugin.getRespawnAnchorManager().removeAnchor(event.getBlock());
+        }
+    }
+
+    // Handles Mace AOE Smash Attack
+    @EventHandler
+    public void onEntitySweepAttack(EntityDamageByEntityEvent event) {
+        if (event.getCause() != EntityDamageEvent.DamageCause.ENTITY_SWEEP_ATTACK) return;
+        if (!(event.getEntity() instanceof Player)) return;
+        if (!(event.getDamager() instanceof Player)) return;
+
+        Player defender = (Player) event.getEntity();
+        Player attacker = (Player) event.getDamager();
+        PVPManager pvpManager = plugin.getPVPManager();
+
+        // Allow self-damage
+        if (attacker.getUniqueId().equals(defender.getUniqueId())) {
+            return;
+        }
+
+        if (!pvpManager.hasConsent(defender.getUniqueId()) || !pvpManager.hasConsent(attacker.getUniqueId())) {
+            event.setCancelled(true);
+            // Silently cancel the event to prevent message spam in chat.
+            // The original attacker and target are in a consensual fight.
+            // Bystanders should not be notified.
         }
     }
 }
