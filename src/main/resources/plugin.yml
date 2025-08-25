@@ -1,12 +1,13 @@
 name: ConsentPVP
-version: '1.0'
+version: '${project.version}'
 main: org.modularsoft.consentpvp.ConsentPVP
 author: "ModularSoft"
+api-version: "1.20"
 description: "Respect in Battle: ConsentPVP for a Better Gaming Experience!"
 commands:
   pvp:
     description: Manage your PVP consent and requests.
-    usage: /pvp <enable|disable>
+    usage: /pvp <status|enable|disable|death>
     permission: consentpvp.use
     permission-message: You don't have permission to use this command.
 permissions:
