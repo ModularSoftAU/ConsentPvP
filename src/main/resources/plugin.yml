@@ -7,7 +7,7 @@ description: "Respect in Battle: ConsentPVP for a Better Gaming Experience!"
 commands:
   pvp:
     description: Manage your PVP consent and requests.
-    usage: /pvp <status|enable|disable|death>
+    usage: /pvp <status|enable|disable|death|reload>
     permission: consentpvp.use
     permission-message: You don't have permission to use this command.
 permissions:
@@ -15,5 +15,5 @@ permissions:
     description: Allows players to use the /pvp command.
     default: true
   consentpvp.admin:
-    description: Allows admins to bypass cooldowns and combat restrictions.
+    description: Allows admins to bypass cooldowns, combat restrictions, and reload the configuration.
     default: op

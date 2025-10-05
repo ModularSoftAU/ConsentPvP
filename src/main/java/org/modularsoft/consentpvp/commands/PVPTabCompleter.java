@@ -11,7 +11,7 @@ import java.util.List;
 
 public class PVPTabCompleter implements TabCompleter {
 
-    private static final String[] SUBCOMMANDS = { "enable", "disable", "death", "status" };
+    private static final String[] SUBCOMMANDS = { "enable", "disable", "death", "status", "reload" };
 
     @Override
     public List<String> onTabComplete(CommandSender sender, Command command, String alias, String[] args) {
