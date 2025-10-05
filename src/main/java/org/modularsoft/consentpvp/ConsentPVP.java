@@ -1,10 +1,18 @@
 package org.modularsoft.consentpvp;
 
 import net.kyori.adventure.text.minimessage.MiniMessage;
+import org.bukkit.configuration.file.YamlConfiguration;
 import org.bukkit.plugin.java.JavaPlugin;
 import org.modularsoft.consentpvp.commands.PVPCommand;
 import org.modularsoft.consentpvp.events.PVPEventListener;
 import org.modularsoft.consentpvp.util.*;
+
+import java.io.File;
+import java.io.IOException;
+import java.io.InputStream;
+import java.io.InputStreamReader;
+import java.nio.charset.StandardCharsets;
+import java.util.logging.Level;
 
 public class ConsentPVP extends JavaPlugin {
 
@@ -33,6 +41,7 @@ public class ConsentPVP extends JavaPlugin {
 
         // Load configuration
         saveDefaultConfig();
+        applyConfigDefaults();
         reloadConfig();
         this.messagePrefix = getConfig().getString("messages.prefix", "<gray>[<red>ConsentPVP<gray>] <white>");
         this.disablePvpOnDeath = getConfig().getBoolean("pvp.disable-on-death", false);
@@ -92,5 +101,25 @@ public class ConsentPVP extends JavaPlugin {
 
     public boolean shouldNotifyDefenderOnDenial() {
         return notifyDefenderOnDenial;
+    }
+
+    private void applyConfigDefaults() {
+        File configFile = new File(getDataFolder(), "config.yml");
+        YamlConfiguration config = YamlConfiguration.loadConfiguration(configFile);
+
+        try (InputStream configStream = getResource("config.yml")) {
+            if (configStream == null) {
+                return;
+            }
+
+            YamlConfiguration defaults = YamlConfiguration.loadConfiguration(
+                new InputStreamReader(configStream, StandardCharsets.UTF_8)
+            );
+            config.setDefaults(defaults);
+            config.options().copyDefaults(true);
+            config.save(configFile);
+        } catch (IOException exception) {
+            getLogger().log(Level.WARNING, "Failed to apply default configuration values", exception);
+        }
     }
 }
