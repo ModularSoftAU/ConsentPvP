@@ -17,6 +17,8 @@ public class ConsentPVP extends JavaPlugin {
     private MiniMessage miniMessage;
     private String messagePrefix;
     private boolean disablePvpOnDeath;
+    private AttemptMessageDelivery attemptMessageDelivery;
+    private boolean notifyDefenderOnDenial;
 
     @Override
     public void onEnable() {
@@ -34,6 +36,8 @@ public class ConsentPVP extends JavaPlugin {
         reloadConfig();
         this.messagePrefix = getConfig().getString("messages.prefix", "<gray>[<red>ConsentPVP<gray>] <white>");
         this.disablePvpOnDeath = getConfig().getBoolean("pvp.disable-on-death", false);
+        this.attemptMessageDelivery = AttemptMessageDelivery.fromConfig(getConfig().getString("messages.pvp_attempt_delivery", "chat"));
+        this.notifyDefenderOnDenial = getConfig().getBoolean("messages.notify-defender-on-denial", false);
 
 
         // Register commands
@@ -80,5 +84,13 @@ public class ConsentPVP extends JavaPlugin {
 
     public boolean isPvpDisabledOnDeath() {
         return disablePvpOnDeath;
+    }
+
+    public AttemptMessageDelivery getAttemptMessageDelivery() {
+        return attemptMessageDelivery;
+    }
+
+    public boolean shouldNotifyDefenderOnDenial() {
+        return notifyDefenderOnDenial;
     }
 }

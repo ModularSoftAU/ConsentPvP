@@ -1,5 +1,8 @@
 package org.modularsoft.consentpvp.events;
 
+import org.bukkit.Bukkit;
+import org.bukkit.OfflinePlayer;
+import org.bukkit.damage.DamageSource;
 import org.bukkit.entity.*;
 import org.bukkit.event.EventHandler;
 import org.bukkit.event.Listener;
@@ -44,27 +47,71 @@ public class PVPEventListener implements Listener {
 
         PVPManager pvpManager = plugin.getPVPManager();
         Player attacker = null;
+        UUID attackerId = null;
+        String attackerName = null;
 
         if (event.getDamager() instanceof Player playerDamager) {
             attacker = playerDamager;
+            attackerId = playerDamager.getUniqueId();
+            attackerName = playerDamager.getName();
         } else if (event.getDamager() instanceof Projectile projectile) {
             ProjectileSource shooter = projectile.getShooter();
-            if (shooter instanceof Player playerShooter) attacker = playerShooter;
+            if (shooter instanceof Player playerShooter) {
+                attacker = playerShooter;
+                attackerId = playerShooter.getUniqueId();
+                attackerName = playerShooter.getName();
+            }
         } else if (event.getDamager() instanceof TNTPrimed tnt) {
-            if (tnt.getSource() instanceof Player playerSource) attacker = playerSource;
+            if (tnt.getSource() instanceof Player playerSource) {
+                attacker = playerSource;
+                attackerId = playerSource.getUniqueId();
+                attackerName = playerSource.getName();
+            }
         } else if (event.getDamager() instanceof EnderCrystal crystal) {
             UUID ownerUUID = plugin.getEndCrystalManager().getOwner(crystal);
-            if (ownerUUID != null) attacker = plugin.getServer().getPlayer(ownerUUID);
+            if (ownerUUID != null) {
+                attackerId = ownerUUID;
+                Player owner = plugin.getServer().getPlayer(ownerUUID);
+                if (owner != null) {
+                    attacker = owner;
+                    attackerName = owner.getName();
+                } else {
+                    OfflinePlayer offlineOwner = Bukkit.getOfflinePlayer(ownerUUID);
+                    attackerName = offlineOwner.getName();
+                }
+            }
         }
 
-        if (attacker == null) return;
+        if (attackerId == null) {
+            DamageSource damageSource = event.getDamageSource();
+            if (damageSource != null) {
+                Entity causingEntity = damageSource.getCausingEntity();
+                if (causingEntity instanceof Player causingPlayer) {
+                    attacker = causingPlayer;
+                    attackerId = causingPlayer.getUniqueId();
+                    attackerName = causingPlayer.getName();
+                }
+            }
+        }
 
-        if (attacker.getUniqueId().equals(defender.getUniqueId())) return;
+        if (attackerName == null && attacker != null) {
+            attackerName = attacker.getName();
+        }
 
-        if (!pvpManager.hasConsent(attacker.getUniqueId()) || !pvpManager.hasConsent(defender.getUniqueId())) {
+        if (attackerId == null) return;
+
+        if (attackerId.equals(defender.getUniqueId())) return;
+
+        boolean isSweepAttack = event.getCause() == EntityDamageEvent.DamageCause.ENTITY_SWEEP_ATTACK;
+
+        if (!pvpManager.hasConsent(attackerId) || !pvpManager.hasConsent(defender.getUniqueId())) {
             event.setCancelled(true);
-            plugin.getMessageManager().sendMessage(attacker, "pvp_not_consented_attacker", "%player%", defender.getName());
-            plugin.getMessageManager().sendMessage(defender, "pvp_not_consented_defender", "%player%", attacker.getName());
+            if (!isSweepAttack && attacker != null) {
+                plugin.getMessageManager().sendAttemptMessage(attacker, "pvp_not_consented_attacker", "%player%", defender.getName());
+            }
+            if (!isSweepAttack && plugin.shouldNotifyDefenderOnDenial() && attackerName != null) {
+                plugin.getMessageManager().sendAttemptMessage(defender, "pvp_not_consented_defender", "%player%", attackerName);
+            }
         }
     }
 
@@ -82,14 +129,16 @@ public class PVPEventListener implements Listener {
                 if (!pvpManager.hasConsent(attacker.getUniqueId()) || !pvpManager.hasConsent(defender.getUniqueId())) {
                     event.setIntensity(defender, 0);
                     nonConsented.add(defender.getName());
-                    plugin.getMessageManager().sendMessage(defender, "pvp_not_consented_defender", "%player%", attacker.getName());
+                    if (plugin.shouldNotifyDefenderOnDenial()) {
+                        plugin.getMessageManager().sendAttemptMessage(defender, "pvp_not_consented_defender", "%player%", attacker.getName());
+                    }
                 }
             }
         });
 
         if (!nonConsented.isEmpty()) {
             String names = String.join(", ", nonConsented);
-            plugin.getMessageManager().sendMessage(attacker, "pvp_not_consented_attacker_multiple", "%players%", names);
+            plugin.getMessageManager().sendAttemptMessage(attacker, "pvp_not_consented_attacker_multiple", "%players%", names);
         }
     }
 
@@ -111,14 +160,16 @@ public class PVPEventListener implements Listener {
                 if (!pvpManager.hasConsent(attacker.getUniqueId()) || !pvpManager.hasConsent(defender.getUniqueId())) {
                     it.remove();
                     nonConsented.add(defender.getName());
-                    plugin.getMessageManager().sendMessage(defender, "pvp_not_consented_defender", "%player%", attacker.getName());
+                    if (plugin.shouldNotifyDefenderOnDenial()) {
+                        plugin.getMessageManager().sendAttemptMessage(defender, "pvp_not_consented_defender", "%player%", attacker.getName());
+                    }
                 }
             }
         }
 
         if (!nonConsented.isEmpty()) {
             String names = String.join(", ", nonConsented);
-            plugin.getMessageManager().sendMessage(attacker, "pvp_not_consented_attacker_multiple", "%players%", names);
+            plugin.getMessageManager().sendAttemptMessage(attacker, "pvp_not_consented_attacker_multiple", "%players%", names);
         }
     }
 
@@ -157,7 +208,7 @@ public class PVPEventListener implements Listener {
                 Player owner = plugin.getServer().getPlayer(ownerUUID);
                 if (owner != null && (!plugin.getPVPManager().hasConsent(owner.getUniqueId()) || !plugin.getPVPManager().hasConsent(player.getUniqueId()))) {
                     event.setCancelled(true);
-                    plugin.getMessageManager().sendMessage(player, "pvp_not_consented_attacker", "%player%", owner.getName());
+                    plugin.getMessageManager().sendAttemptMessage(player, "pvp_not_consented_attacker", "%player%", owner.getName());
                 }
             }
         }
@@ -167,6 +218,13 @@ public class PVPEventListener implements Listener {
     public void onEntityExplode(EntityExplodeEvent event) {
         if (event.getEntity() instanceof EnderCrystal crystal) {
             plugin.getEndCrystalManager().removeCrystal(crystal);
+        }
+    }
+
+    @EventHandler
+    public void onEntityPlace(EntityPlaceEvent event) {
+        if (event.getEntity() instanceof EnderCrystal crystal) {
+            plugin.getEndCrystalManager().addCrystal(crystal, event.getPlayer().getUniqueId());
         }
     }
 

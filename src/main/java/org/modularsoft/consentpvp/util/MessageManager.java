@@ -1,5 +1,6 @@
 package org.modularsoft.consentpvp.util;
 
+import net.kyori.adventure.text.Component;
 import net.kyori.adventure.text.minimessage.MiniMessage;
 import org.bukkit.entity.Player;
 import org.modularsoft.consentpvp.ConsentPVP;
@@ -18,19 +19,40 @@ public class MessageManager {
     }
 
     public void sendMessage(Player player, String messageKey, String... replacements) {
+        Component message = buildMessage(messageKey, replacements);
+        if (message == null) {
+            return;
+        }
+        player.sendMessage(message);
+    }
+
+    public void sendAttemptMessage(Player player, String messageKey, String... replacements) {
+        Component message = buildMessage(messageKey, replacements);
+        if (message == null) {
+            return;
+        }
+
+        if (plugin.getAttemptMessageDelivery() == AttemptMessageDelivery.ACTION_BAR) {
+            player.sendActionBar(message);
+        } else {
+            player.sendMessage(message);
+        }
+    }
+
+    private Component buildMessage(String messageKey, String... replacements) {
         String message = plugin.getConfig().getString("messages." + messageKey);
         if (message == null) {
             plugin.getLogger().warning("Missing message key: messages." + messageKey);
-            return;
+            return null;
         }
         if (replacements.length % 2 != 0) {
             plugin.getLogger().warning("Replacements array must have even number of elements");
-            return;
+            return null;
         }
         for (int i = 0; i < replacements.length; i += 2) {
             message = message.replace(replacements[i], replacements[i + 1]);
         }
-        player.sendMessage(miniMessage.deserialize(message));
+        return miniMessage.deserialize(message);
     }
 
     public String getRemainingCooldownTime(UUID playerId) {
