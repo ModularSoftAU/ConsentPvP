@@ -20,5 +20,6 @@ messages:
   pvp_not_consented_attacker_multiple: "<red>You tried to hit %players% but PVP is not consented."
   no_permission: "<red>You don't have permission to use this command."
   pvp_death_toggle: "<green>PVP disable on death is now %status%."
+  config_reloaded: "<green>ConsentPVP configuration reloaded."
   pvp_disabled_on_death: "<red>Your PVP has been disabled due to your death."
   pvp_status: "<white>Your PVP status is currently <green>%status%<white>."

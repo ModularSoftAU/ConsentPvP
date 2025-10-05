@@ -2,6 +2,7 @@ package org.modularsoft.consentpvp.util;
 
 import net.kyori.adventure.text.Component;
 import net.kyori.adventure.text.minimessage.MiniMessage;
+import org.bukkit.command.CommandSender;
 import org.bukkit.entity.Player;
 import org.modularsoft.consentpvp.ConsentPVP;
 
@@ -19,11 +20,15 @@ public class MessageManager {
     }
 
     public void sendMessage(Player player, String messageKey, String... replacements) {
+        sendMessage((CommandSender) player, messageKey, replacements);
+    }
+
+    public void sendMessage(CommandSender sender, String messageKey, String... replacements) {
         Component message = buildMessage(messageKey, replacements);
         if (message == null) {
             return;
         }
-        player.sendMessage(message);
+        sender.sendMessage(message);
     }
 
     public void sendAttemptMessage(Player player, String messageKey, String... replacements) {

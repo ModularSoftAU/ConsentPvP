@@ -32,6 +32,7 @@
 | `/pvp enable`     | Enable PvP consent for yourself.               |
 | `/pvp disable`    | Disable PvP consent for yourself.              |
 | `/pvp death`      | Toggles whether PVP is disabled on death.      |
+| `/pvp reload`     | Reloads the plugin configuration.              |
 
 ---
 
@@ -40,7 +41,7 @@
 | Permission           | Description                                               |
 |----------------------|----------------------------------------------------------|
 | `consentpvp.use`     | Allows players to use the `/pvp` command.                |
-| `consentpvp.admin`   | Allows admins to bypass cooldowns and combat restrictions.|
+| `consentpvp.admin`   | Allows admins to bypass cooldowns, combat restrictions, and reload the plugin configuration.|
 
 ---
 
@@ -71,6 +72,7 @@ messages:
   pvp_not_consented_attacker_multiple: "<red>You tried to hit %players% but PVP is not consented."
   no_permission: "<red>You don't have permission to use this command."
   pvp_death_toggle: "<green>PVP disable on death is now %status%."
+  config_reloaded: "<green>ConsentPVP configuration reloaded."
   pvp_disabled_on_death: "<red>Your PVP has been disabled due to your death."
   pvp_status: "<white>Your PVP status is currently <green>%status%<white>."
 ```

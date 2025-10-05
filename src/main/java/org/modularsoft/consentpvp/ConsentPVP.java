@@ -41,12 +41,7 @@ public class ConsentPVP extends JavaPlugin {
 
         // Load configuration
         saveDefaultConfig();
-        applyConfigDefaults();
-        reloadConfig();
-        this.messagePrefix = getConfig().getString("messages.prefix", "<gray>[<red>ConsentPVP<gray>] <white>");
-        this.disablePvpOnDeath = getConfig().getBoolean("pvp.disable-on-death", false);
-        this.attemptMessageDelivery = AttemptMessageDelivery.fromConfig(getConfig().getString("messages.pvp_attempt_delivery", "chat"));
-        this.notifyDefenderOnDenial = getConfig().getBoolean("messages.notify-defender-on-denial", false);
+        reloadPluginConfig();
 
 
         // Register commands
@@ -95,12 +90,22 @@ public class ConsentPVP extends JavaPlugin {
         return disablePvpOnDeath;
     }
 
+    public void setDisablePvpOnDeath(boolean disablePvpOnDeath) {
+        this.disablePvpOnDeath = disablePvpOnDeath;
+    }
+
     public AttemptMessageDelivery getAttemptMessageDelivery() {
         return attemptMessageDelivery;
     }
 
     public boolean shouldNotifyDefenderOnDenial() {
         return notifyDefenderOnDenial;
+    }
+
+    public void reloadPluginConfig() {
+        applyConfigDefaults();
+        reloadConfig();
+        loadSettings();
     }
 
     private void applyConfigDefaults() {
@@ -121,5 +126,14 @@ public class ConsentPVP extends JavaPlugin {
         } catch (IOException exception) {
             getLogger().log(Level.WARNING, "Failed to apply default configuration values", exception);
         }
+    }
+
+    private void loadSettings() {
+        this.messagePrefix = getConfig().getString("messages.prefix", "<gray>[<red>ConsentPVP<gray>] <white>");
+        this.disablePvpOnDeath = getConfig().getBoolean("pvp.disable-on-death", false);
+        this.attemptMessageDelivery = AttemptMessageDelivery.fromConfig(
+            getConfig().getString("messages.pvp_attempt_delivery", "chat")
+        );
+        this.notifyDefenderOnDenial = getConfig().getBoolean("messages.notify-defender-on-denial", false);
     }
 }
