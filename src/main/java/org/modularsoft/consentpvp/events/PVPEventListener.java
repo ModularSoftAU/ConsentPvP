@@ -13,6 +13,7 @@ import org.bukkit.event.entity.*;
 import org.bukkit.event.player.PlayerInteractEvent;
 import org.bukkit.event.player.PlayerJoinEvent;
 import org.bukkit.event.player.PlayerQuitEvent;
+import org.bukkit.potion.PotionEffectType;
 import org.bukkit.projectiles.ProjectileSource;
 import org.modularsoft.consentpvp.ConsentPVP;
 import org.modularsoft.consentpvp.util.PVPManager;
@@ -107,10 +108,18 @@ public class PVPEventListener implements Listener {
         if (!pvpManager.hasConsent(attackerId) || !pvpManager.hasConsent(defender.getUniqueId())) {
             event.setCancelled(true);
             if (!isSweepAttack && attacker != null) {
-                plugin.getMessageManager().sendAttemptMessage(attacker, "pvp_not_consented_attacker", "%player%", defender.getName());
+                if (defender.hasPotionEffect(PotionEffectType.INVISIBILITY)) {
+                    plugin.getMessageManager().sendAttemptMessage(attacker, "pvp_not_consented_attacker_anonymous");
+                } else {
+                    plugin.getMessageManager().sendAttemptMessage(attacker, "pvp_not_consented_attacker", "%player%", defender.getName());
+                }
             }
             if (!isSweepAttack && plugin.shouldNotifyDefenderOnDenial() && attackerName != null) {
-                plugin.getMessageManager().sendAttemptMessage(defender, "pvp_not_consented_defender", "%player%", attackerName);
+                if (attacker != null && attacker.hasPotionEffect(PotionEffectType.INVISIBILITY)) {
+                    plugin.getMessageManager().sendAttemptMessage(defender, "pvp_not_consented_defender_anonymous");
+                } else {
+                    plugin.getMessageManager().sendAttemptMessage(defender, "pvp_not_consented_defender", "%player%", attackerName);
+                }
             }
         }
     }
