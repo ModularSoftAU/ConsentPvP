@@ -27,9 +27,12 @@
 
 | Command           | Description                                    |
 |-------------------|------------------------------------------------|
-| `/pvp`            | Displays your PvP status and available actions.|
+| `/pvp`            | Displays your PvP status.                      |
+| `/pvp status`     | Displays your PvP status.                      |
 | `/pvp enable`     | Enable PvP consent for yourself.               |
 | `/pvp disable`    | Disable PvP consent for yourself.              |
+| `/pvp death`      | Toggles whether PVP is disabled on death.      |
+| `/pvp reload`     | Reloads the plugin configuration.              |
 
 ---
 
@@ -38,9 +41,44 @@
 | Permission           | Description                                               |
 |----------------------|----------------------------------------------------------|
 | `consentpvp.use`     | Allows players to use the `/pvp` command.                |
-| `consentpvp.admin`   | Allows admins to bypass cooldowns and combat restrictions.|
+| `consentpvp.admin`   | Allows admins to bypass cooldowns, combat restrictions, and reload the plugin configuration.|
 
 ---
+
+## Configuration
+
+The `config.yml` file allows you to customize the plugin's behavior.
+
+```yaml
+pvp:
+  # If true, players will have their PVP consent disabled upon death.
+  disable-on-death: false
+
+cooldown:
+  # Duration in minutes before a player can toggle PVP consent again
+  duration: 5
+
+messages:
+  prefix: "<bold><gray>[<red>ConsentPVP<gray>]</bold> <white>"
+  # Where PvP denial messages should appear. Options: chat, action_bar
+  pvp_attempt_delivery: chat
+  # If true, both players are notified when a PvP attempt is denied.
+  notify-defender-on-denial: false
+  pvp_enabled: "<green>PVP consent enabled."
+  pvp_disabled: "<red>PVP consent disabled."
+  on_cooldown: "<red>You must wait %time% before toggling PVP again."
+  pvp_not_consented_attacker: "<red>You tried to hit %player% but PVP is not consented."
+  pvp_not_consented_defender: "<red>%player% tried to hit you but PVP is not consented."
+  pvp_not_consented_attacker_multiple: "<red>You tried to hit %players% but PVP is not consented."
+  no_permission: "<red>You don't have permission to use this command."
+  pvp_death_toggle: "<green>PVP disable on death is now %status%."
+  config_reloaded: "<green>ConsentPVP configuration reloaded."
+  pvp_disabled_on_death: "<red>Your PVP has been disabled due to your death."
+  pvp_status: "<white>Your PVP status is currently <green>%status%<white>."
+```
+
+- `pvp_attempt_delivery` lets you move PvP denial notifications to the action bar instead of chat.
+- `notify-defender-on-denial` controls whether the defender sees denial notifications.
 
 ## Usage
 

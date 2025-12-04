@@ -1,11 +1,27 @@
+pvp:
+  # If true, players will have their PVP consent disabled upon death.
+  disable-on-death: false
+
 cooldown:
   # Duration in minutes before a player can toggle PVP consent again
   duration: 5
 
 messages:
   prefix: "<bold><gray>[<red>ConsentPVP<gray>]</bold> <white>"
+  # Where PvP denial messages should appear. Valid options: chat, action_bar
+  pvp_attempt_delivery: chat
+  # If true, both players are notified when a PvP attempt is denied.
+  notify-defender-on-denial: false
   pvp_enabled: "<green>PVP consent enabled."
   pvp_disabled: "<red>PVP consent disabled."
   on_cooldown: "<red>You must wait %time% before toggling PVP again."
   pvp_not_consented_attacker: "<red>You tried to hit %player% but PVP is not consented."
+  pvp_not_consented_attacker_anonymous: "<red>You tried to hit an anonymous player but PVP is not consented."
   pvp_not_consented_defender: "<red>%player% tried to hit you but PVP is not consented."
+  pvp_not_consented_defender_anonymous: "<red>Anonymous tried attacking you but pvp is not consented."
+  pvp_not_consented_attacker_multiple: "<red>You tried to hit %players% but PVP is not consented."
+  no_permission: "<red>You don't have permission to use this command."
+  pvp_death_toggle: "<green>PVP disable on death is now %status%."
+  config_reloaded: "<green>ConsentPVP configuration reloaded."
+  pvp_disabled_on_death: "<red>Your PVP has been disabled due to your death."
+  pvp_status: "<white>Your PVP status is currently <green>%status%<white>."
