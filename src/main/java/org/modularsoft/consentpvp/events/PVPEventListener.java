@@ -34,12 +34,14 @@ public class PVPEventListener implements Listener {
     @EventHandler
     public void onPlayerJoin(PlayerJoinEvent event) {
         plugin.getPVPManager().loadConsentForPlayer(event.getPlayer());
+        plugin.getNameTagManager().updatePlayer(event.getPlayer());
     }
 
     @EventHandler
     public void onPlayerQuit(PlayerQuitEvent event) {
         plugin.getPVPManager().saveConsentForPlayer(event.getPlayer());
         plugin.getPVPManager().cleanupOfflinePlayers();
+        plugin.getNameTagManager().removePlayer(event.getPlayer());
     }
 
     @EventHandler
@@ -187,6 +189,7 @@ public class PVPEventListener implements Listener {
         if (plugin.isPvpDisabledOnDeath()) {
             Player player = event.getEntity();
             plugin.getPVPManager().setConsent(player.getUniqueId(), false);
+            plugin.getNameTagManager().updatePlayer(player);
             plugin.getMessageManager().sendMessage(player, "pvp_disabled_on_death");
         }
     }

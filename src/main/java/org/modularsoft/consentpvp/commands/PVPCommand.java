@@ -73,6 +73,7 @@ public class PVPCommand implements CommandExecutor {
                     return true;
                 }
                 pvpManager.setConsent(player.getUniqueId(), true);
+                plugin.getNameTagManager().updatePlayer(player);
                 cooldownManager.setCooldown(player.getUniqueId());
                 messageManager.sendMessage(player, "pvp_enabled");
                 break;
@@ -88,6 +89,7 @@ public class PVPCommand implements CommandExecutor {
                     return true;
                 }
                 pvpManager.setConsent(player.getUniqueId(), false);
+                plugin.getNameTagManager().updatePlayer(player);
                 cooldownManager.setCooldown(player.getUniqueId());
                 messageManager.sendMessage(player, "pvp_disabled");
                 break;

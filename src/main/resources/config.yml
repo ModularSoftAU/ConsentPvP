@@ -25,3 +25,11 @@ messages:
   config_reloaded: "<green>ConsentPVP configuration reloaded."
   pvp_disabled_on_death: "<red>Your PVP has been disabled due to your death."
   pvp_status: "<white>Your PVP status is currently <green>%status%<white>."
+
+indicators:
+  # If true, a visual indicator will be shown above player's heads indicating their PVP status.
+  enabled: true
+  # The prefix shown for players with PVP enabled.
+  pvp-enabled-prefix: "<green>⚔ </green>"
+  # The prefix shown for players with PVP disabled.
+  pvp-disabled-prefix: "<red>🛡 </red>"

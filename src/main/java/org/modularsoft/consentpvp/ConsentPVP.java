@@ -21,12 +21,14 @@ public class ConsentPVP extends JavaPlugin {
     private MessageManager messageManager;
     private EndCrystalManager endCrystalManager;
     private RespawnAnchorManager respawnAnchorManager;
+    private NameTagManager nameTagManager;
 
     private MiniMessage miniMessage;
     private String messagePrefix;
     private boolean disablePvpOnDeath;
     private AttemptMessageDelivery attemptMessageDelivery;
     private boolean notifyDefenderOnDenial;
+    private boolean indicatorsEnabled;
 
     @Override
     public void onEnable() {
@@ -36,6 +38,7 @@ public class ConsentPVP extends JavaPlugin {
         this.messageManager = new MessageManager(this);
         this.endCrystalManager = new EndCrystalManager();
         this.respawnAnchorManager = new RespawnAnchorManager();
+        this.nameTagManager = new NameTagManager(this);
 
         this.miniMessage = MiniMessage.miniMessage();
 
@@ -56,6 +59,11 @@ public class ConsentPVP extends JavaPlugin {
             cooldownManager.cleanupExpiredCooldowns();
             pvpManager.cleanupOfflinePlayers();
         }, 6000L, 6000L);
+
+        // Update all players on startup
+        if (indicatorsEnabled) {
+            nameTagManager.updateAllPlayers();
+        }
     }
 
     public CooldownManager getCooldownManager() {
@@ -76,6 +84,10 @@ public class ConsentPVP extends JavaPlugin {
 
     public RespawnAnchorManager getRespawnAnchorManager() {
         return respawnAnchorManager;
+    }
+
+    public NameTagManager getNameTagManager() {
+        return nameTagManager;
     }
 
     public MiniMessage getMiniMessage() {
@@ -102,10 +114,19 @@ public class ConsentPVP extends JavaPlugin {
         return notifyDefenderOnDenial;
     }
 
+    public boolean areIndicatorsEnabled() {
+        return indicatorsEnabled;
+    }
+
     public void reloadPluginConfig() {
         applyConfigDefaults();
         reloadConfig();
         loadSettings();
+
+        if (nameTagManager != null) {
+            nameTagManager.loadConfig();
+            nameTagManager.updateAllPlayers();
+        }
     }
 
     private void applyConfigDefaults() {
@@ -135,5 +156,6 @@ public class ConsentPVP extends JavaPlugin {
             getConfig().getString("messages.pvp_attempt_delivery", "chat")
         );
         this.notifyDefenderOnDenial = getConfig().getBoolean("messages.notify-defender-on-denial", false);
+        this.indicatorsEnabled = getConfig().getBoolean("indicators.enabled", true);
     }
 }
