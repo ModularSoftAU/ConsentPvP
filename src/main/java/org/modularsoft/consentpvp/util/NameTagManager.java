@@ -13,6 +13,7 @@ public class NameTagManager {
     private final Scoreboard scoreboard;
     private Component enabledPrefix;
     private Component disabledPrefix;
+    private boolean force;
 
     private static final String TEAM_ON = "CPVP_ON";
     private static final String TEAM_OFF = "CPVP_OFF";
@@ -28,8 +29,9 @@ public class NameTagManager {
             plugin.getConfig().getString("indicators.pvp-enabled-prefix", "<green>⚔ </green>")
         );
         this.disabledPrefix = plugin.getMiniMessage().deserialize(
-            plugin.getConfig().getString("indicators.pvp-disabled-prefix", "<red>🛡 </red>")
+            plugin.getConfig().getString("indicators.pvp-disabled-prefix", "<red>⚔ </red>")
         );
+        this.force = plugin.getConfig().getBoolean("indicators.force", false);
 
         setupTeam(TEAM_ON, enabledPrefix);
         setupTeam(TEAM_OFF, disabledPrefix);
@@ -47,6 +49,12 @@ public class NameTagManager {
     public void updatePlayer(Player player) {
         if (!plugin.areIndicatorsEnabled()) {
             removePlayer(player);
+            return;
+        }
+
+        Team currentTeam = scoreboard.getEntryTeam(player.getName());
+        if (!force && currentTeam != null && !currentTeam.getName().startsWith("CPVP_")) {
+            // Already in a non-CPVP team, and we are not forcing.
             return;
         }
 
@@ -82,5 +90,13 @@ public class NameTagManager {
         for (Player player : Bukkit.getOnlinePlayers()) {
             updatePlayer(player);
         }
+    }
+
+    public void cleanup() {
+        Team teamOn = scoreboard.getTeam(TEAM_ON);
+        Team teamOff = scoreboard.getTeam(TEAM_OFF);
+
+        if (teamOn != null) teamOn.unregister();
+        if (teamOff != null) teamOff.unregister();
     }
 }

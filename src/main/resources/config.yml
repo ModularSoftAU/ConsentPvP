@@ -29,7 +29,9 @@ messages:
 indicators:
   # If true, a visual indicator will be shown above player's heads indicating their PVP status.
   enabled: true
+  # If true, the plugin will force its own indicators even if it overwrites name tags from other plugins.
+  force: false
   # The prefix shown for players with PVP enabled.
   pvp-enabled-prefix: "<green>⚔ </green>"
   # The prefix shown for players with PVP disabled.
-  pvp-disabled-prefix: "<red>🛡 </red>"
+  pvp-disabled-prefix: "<red>⚔ </red>"

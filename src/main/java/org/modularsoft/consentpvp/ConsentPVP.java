@@ -1,6 +1,7 @@
 package org.modularsoft.consentpvp;
 
 import net.kyori.adventure.text.minimessage.MiniMessage;
+import org.bukkit.Bukkit;
 import org.bukkit.configuration.file.YamlConfiguration;
 import org.bukkit.plugin.java.JavaPlugin;
 import org.modularsoft.consentpvp.commands.PVPCommand;
@@ -32,6 +33,8 @@ public class ConsentPVP extends JavaPlugin {
 
     @Override
     public void onEnable() {
+        this.miniMessage = MiniMessage.miniMessage();
+
         // Initialize managers
         this.cooldownManager = new CooldownManager(this);
         this.pvpManager = new PVPManager(this);
@@ -39,8 +42,6 @@ public class ConsentPVP extends JavaPlugin {
         this.endCrystalManager = new EndCrystalManager();
         this.respawnAnchorManager = new RespawnAnchorManager();
         this.nameTagManager = new NameTagManager(this);
-
-        this.miniMessage = MiniMessage.miniMessage();
 
         // Load configuration
         saveDefaultConfig();
@@ -59,11 +60,6 @@ public class ConsentPVP extends JavaPlugin {
             cooldownManager.cleanupExpiredCooldowns();
             pvpManager.cleanupOfflinePlayers();
         }, 6000L, 6000L);
-
-        // Update all players on startup
-        if (indicatorsEnabled) {
-            nameTagManager.updateAllPlayers();
-        }
     }
 
     public CooldownManager getCooldownManager() {
@@ -118,10 +114,21 @@ public class ConsentPVP extends JavaPlugin {
         return indicatorsEnabled;
     }
 
+    @Override
+    public void onDisable() {
+        if (nameTagManager != null) {
+            nameTagManager.cleanup();
+        }
+    }
+
     public void reloadPluginConfig() {
         applyConfigDefaults();
         reloadConfig();
         loadSettings();
+
+        for (org.bukkit.entity.Player player : Bukkit.getOnlinePlayers()) {
+            pvpManager.loadConsentForPlayer(player);
+        }
 
         if (nameTagManager != null) {
             nameTagManager.loadConfig();

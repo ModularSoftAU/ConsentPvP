@@ -3,13 +3,26 @@ package org.modularsoft.consentpvp.events;
 import org.bukkit.Bukkit;
 import org.bukkit.OfflinePlayer;
 import org.bukkit.damage.DamageSource;
-import org.bukkit.entity.*;
+import org.bukkit.entity.AreaEffectCloud;
+import org.bukkit.entity.EnderCrystal;
+import org.bukkit.entity.Entity;
+import org.bukkit.entity.LivingEntity;
+import org.bukkit.entity.Player;
+import org.bukkit.entity.Projectile;
+import org.bukkit.entity.TNTPrimed;
+import org.bukkit.entity.ThrownPotion;
 import org.bukkit.event.EventHandler;
 import org.bukkit.event.Listener;
-import org.bukkit.event.entity.EntityDamageEvent;
 import org.bukkit.event.block.BlockBreakEvent;
 import org.bukkit.event.block.BlockPlaceEvent;
-import org.bukkit.event.entity.*;
+import org.bukkit.event.block.BlockIgniteEvent;
+import org.bukkit.event.entity.AreaEffectCloudApplyEvent;
+import org.bukkit.event.entity.EntityDamageByEntityEvent;
+import org.bukkit.event.entity.EntityDamageEvent;
+import org.bukkit.event.entity.EntityExplodeEvent;
+import org.bukkit.event.entity.EntityPlaceEvent;
+import org.bukkit.event.entity.PlayerDeathEvent;
+import org.bukkit.event.entity.PotionSplashEvent;
 import org.bukkit.event.player.PlayerInteractEvent;
 import org.bukkit.event.player.PlayerJoinEvent;
 import org.bukkit.event.player.PlayerQuitEvent;
@@ -251,6 +264,31 @@ public class PVPEventListener implements Listener {
     public void onBlockBreak(BlockBreakEvent event) {
         if (event.getBlock().getType() == org.bukkit.Material.RESPAWN_ANCHOR) {
             plugin.getRespawnAnchorManager().removeAnchor(event.getBlock());
+        }
+    }
+
+    @EventHandler
+    public void onBlockIgnite(BlockIgniteEvent event) {
+        if (event.getPlayer() == null) return;
+        if (event.getCause() != BlockIgniteEvent.IgniteCause.FLINT_AND_STEEL && event.getCause() != BlockIgniteEvent.IgniteCause.FIREBALL) return;
+
+        Player attacker = event.getPlayer();
+        PVPManager pvpManager = plugin.getPVPManager();
+
+        for (Entity entity : event.getBlock().getWorld().getNearbyEntities(event.getBlock().getLocation().add(0.5, 0.5, 0.5), 0.5, 0.5, 0.5)) {
+            if (entity instanceof Player defender) {
+                if (attacker.equals(defender)) continue;
+
+                if (!pvpManager.hasConsent(attacker.getUniqueId()) || !pvpManager.hasConsent(defender.getUniqueId())) {
+                    event.setCancelled(true);
+                    if (defender.hasPotionEffect(PotionEffectType.INVISIBILITY)) {
+                        plugin.getMessageManager().sendAttemptMessage(attacker, "pvp_not_consented_attacker_anonymous");
+                    } else {
+                        plugin.getMessageManager().sendAttemptMessage(attacker, "pvp_not_consented_attacker", "%player%", defender.getName());
+                    }
+                    return;
+                }
+            }
         }
     }
 
