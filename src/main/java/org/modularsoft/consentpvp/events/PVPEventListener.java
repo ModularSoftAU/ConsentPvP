@@ -6,6 +6,7 @@ import org.bukkit.damage.DamageSource;
 import org.bukkit.entity.AreaEffectCloud;
 import org.bukkit.entity.EnderCrystal;
 import org.bukkit.entity.Entity;
+import org.bukkit.entity.minecart.ExplosiveMinecart;
 import org.bukkit.entity.LivingEntity;
 import org.bukkit.entity.Player;
 import org.bukkit.entity.Projectile;
@@ -83,6 +84,10 @@ public class PVPEventListener implements Listener {
                 attackerId = playerSource.getUniqueId();
                 attackerName = playerSource.getName();
             }
+        } else if (event.getDamager() instanceof ExplosiveMinecart tntMinecart) {
+            // ExplosiveMinecart doesn't have a direct source in Bukkit API easily
+            // But we can check for nearby players if we want to be aggressive,
+            // or just block damage to non-consenting players from explosives.
         } else if (event.getDamager() instanceof EnderCrystal crystal) {
             UUID ownerUUID = plugin.getEndCrystalManager().getOwner(crystal);
             if (ownerUUID != null) {
@@ -114,7 +119,15 @@ public class PVPEventListener implements Listener {
             attackerName = attacker.getName();
         }
 
-        if (attackerId == null) return;
+        if (attackerId == null) {
+            // If the damager is an explosive minecart or a general explosion, and the defender has PvP off, block it.
+            if ((event.getDamager() instanceof ExplosiveMinecart) && !pvpManager.hasConsent(defender.getUniqueId())) {
+                event.setCancelled(true);
+                plugin.getMessageManager().sendAttemptMessage(defender, "pvp_not_consented_defender_anonymous");
+                return;
+            }
+            return;
+        }
 
         if (attackerId.equals(defender.getUniqueId())) return;
 
@@ -289,6 +302,21 @@ public class PVPEventListener implements Listener {
                     return;
                 }
             }
+        }
+    }
+
+    // Prevent explosion damage for non-consenting players
+    @EventHandler
+    public void onEntityDamage(EntityDamageEvent event) {
+        if (!(event.getEntity() instanceof Player defender)) return;
+        if (event.getCause() != EntityDamageEvent.DamageCause.BLOCK_EXPLOSION && event.getCause() != EntityDamageEvent.DamageCause.ENTITY_EXPLOSION) return;
+
+        // If it's EntityDamageByEntityEvent, it's already handled by onEntityDamageByEntity
+        if (event instanceof EntityDamageByEntityEvent) return;
+
+        if (!plugin.getPVPManager().hasConsent(defender.getUniqueId())) {
+            event.setCancelled(true);
+            plugin.getMessageManager().sendAttemptMessage(defender, "pvp_not_consented_defender_anonymous");
         }
     }
 
