@@ -22,6 +22,7 @@ public class ConsentPVP extends JavaPlugin {
     private MessageManager messageManager;
     private EndCrystalManager endCrystalManager;
     private RespawnAnchorManager respawnAnchorManager;
+    private LavaManager lavaManager;
     private NameTagManager nameTagManager;
 
     private MiniMessage miniMessage;
@@ -41,6 +42,7 @@ public class ConsentPVP extends JavaPlugin {
         this.messageManager = new MessageManager(this);
         this.endCrystalManager = new EndCrystalManager();
         this.respawnAnchorManager = new RespawnAnchorManager();
+        this.lavaManager = new LavaManager();
         this.nameTagManager = new NameTagManager(this);
 
         // Load configuration
@@ -80,6 +82,10 @@ public class ConsentPVP extends JavaPlugin {
 
     public RespawnAnchorManager getRespawnAnchorManager() {
         return respawnAnchorManager;
+    }
+
+    public LavaManager getLavaManager() {
+        return lavaManager;
     }
 
     public NameTagManager getNameTagManager() {

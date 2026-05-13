@@ -24,6 +24,8 @@ import org.bukkit.event.entity.EntityExplodeEvent;
 import org.bukkit.event.entity.EntityPlaceEvent;
 import org.bukkit.event.entity.PlayerDeathEvent;
 import org.bukkit.event.entity.PotionSplashEvent;
+import org.bukkit.event.player.PlayerBucketEmptyEvent;
+import org.bukkit.event.player.PlayerBucketFillEvent;
 import org.bukkit.event.player.PlayerInteractEvent;
 import org.bukkit.event.player.PlayerJoinEvent;
 import org.bukkit.event.player.PlayerQuitEvent;
@@ -130,6 +132,12 @@ public class PVPEventListener implements Listener {
         }
 
         if (attackerId.equals(defender.getUniqueId())) return;
+
+        // Block attacks from vanished players (hidden via vanish plugin, not potion invisibility)
+        if (attacker != null && !defender.canSee(attacker)) {
+            event.setCancelled(true);
+            return;
+        }
 
         boolean isSweepAttack = event.getCause() == EntityDamageEvent.DamageCause.ENTITY_SWEEP_ATTACK;
 
@@ -271,12 +279,33 @@ public class PVPEventListener implements Listener {
         if (event.getBlock().getType() == org.bukkit.Material.RESPAWN_ANCHOR) {
             plugin.getRespawnAnchorManager().addAnchor(event.getBlock(), event.getPlayer().getUniqueId());
         }
+        if (event.getBlock().getType() == org.bukkit.Material.LAVA) {
+            plugin.getLavaManager().addLava(event.getBlock(), event.getPlayer().getUniqueId());
+        }
     }
 
     @EventHandler
     public void onBlockBreak(BlockBreakEvent event) {
         if (event.getBlock().getType() == org.bukkit.Material.RESPAWN_ANCHOR) {
             plugin.getRespawnAnchorManager().removeAnchor(event.getBlock());
+        }
+        if (event.getBlock().getType() == org.bukkit.Material.LAVA) {
+            plugin.getLavaManager().removeLava(event.getBlock());
+        }
+    }
+
+    @EventHandler
+    public void onPlayerBucketEmpty(PlayerBucketEmptyEvent event) {
+        if (event.getBucket() == org.bukkit.Material.LAVA_BUCKET) {
+            org.bukkit.block.Block placed = event.getBlock().getRelative(event.getBlockFace());
+            plugin.getLavaManager().addLava(placed, event.getPlayer().getUniqueId());
+        }
+    }
+
+    @EventHandler
+    public void onPlayerBucketFill(PlayerBucketFillEvent event) {
+        if (event.getItemStack().getType() == org.bukkit.Material.LAVA_BUCKET) {
+            plugin.getLavaManager().removeLava(event.getBlock());
         }
     }
 
@@ -309,12 +338,36 @@ public class PVPEventListener implements Listener {
     @EventHandler
     public void onEntityDamage(EntityDamageEvent event) {
         if (!(event.getEntity() instanceof Player defender)) return;
+
+        PVPManager pvpManager = plugin.getPVPManager();
+
+        if (event.getCause() == EntityDamageEvent.DamageCause.LAVA) {
+            org.bukkit.Location loc = defender.getLocation();
+            org.bukkit.block.Block[] candidates = {
+                loc.getBlock(),
+                loc.clone().add(0, 1, 0).getBlock(),
+                loc.clone().subtract(0, 1, 0).getBlock()
+            };
+            for (org.bukkit.block.Block block : candidates) {
+                if (block.getType() == org.bukkit.Material.LAVA) {
+                    UUID lavaPlacer = plugin.getLavaManager().getOwner(block);
+                    if (lavaPlacer != null && !lavaPlacer.equals(defender.getUniqueId())) {
+                        if (!pvpManager.hasConsent(lavaPlacer) || !pvpManager.hasConsent(defender.getUniqueId())) {
+                            event.setCancelled(true);
+                        }
+                    }
+                    return;
+                }
+            }
+            return;
+        }
+
         if (event.getCause() != EntityDamageEvent.DamageCause.BLOCK_EXPLOSION && event.getCause() != EntityDamageEvent.DamageCause.ENTITY_EXPLOSION) return;
 
         // If it's EntityDamageByEntityEvent, it's already handled by onEntityDamageByEntity
         if (event instanceof EntityDamageByEntityEvent) return;
 
-        if (!plugin.getPVPManager().hasConsent(defender.getUniqueId())) {
+        if (!pvpManager.hasConsent(defender.getUniqueId())) {
             event.setCancelled(true);
             plugin.getMessageManager().sendAttemptMessage(defender, "pvp_not_consented_defender_anonymous");
         }

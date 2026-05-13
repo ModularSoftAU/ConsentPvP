@@ -25,6 +25,8 @@ messages:
   config_reloaded: "<green>ConsentPVP configuration reloaded."
   pvp_disabled_on_death: "<red>Your PVP has been disabled due to your death."
   pvp_status: "<white>Your PVP status is currently <green>%status%<white>."
+  bypass_cooldown_sender: "<green>Cleared PVP cooldown for %player%."
+  bypass_cooldown_target: "<green>Your PVP cooldown has been cleared by a staff member."
 
 indicators:
   # If true, a visual indicator will be shown above player's heads indicating their PVP status.

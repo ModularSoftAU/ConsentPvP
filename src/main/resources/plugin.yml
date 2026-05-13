@@ -7,7 +7,7 @@ description: "Respect in Battle: ConsentPVP for a Better Gaming Experience!"
 commands:
   pvp:
     description: Manage your PVP consent and requests.
-    usage: /pvp <status|enable|disable|death|reload>
+    usage: /pvp <status|enable|disable|bypass|death|reload>
     permission: consentpvp.use
     permission-message: You don't have permission to use this command.
 permissions:
