@@ -409,7 +409,7 @@ public class PVPEventListener implements Listener {
     public void onEntityPushed(EntityPushedByEntityAttackEvent event) {
         if (!(event.getEntity() instanceof Player defender)) return;
 
-        Entity pusher = event.getPusher();
+        Entity pusher = event.getPushedBy();
         Player attacker = null;
 
         if (pusher instanceof Player playerPusher) {
