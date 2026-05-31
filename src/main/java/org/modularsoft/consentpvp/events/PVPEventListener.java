@@ -1,5 +1,6 @@
 package org.modularsoft.consentpvp.events;
 
+import io.papermc.paper.event.entity.EntityPushedByEntityAttackEvent;
 import org.bukkit.Bukkit;
 import org.bukkit.OfflinePlayer;
 import org.bukkit.damage.DamageSource;
@@ -370,6 +371,36 @@ public class PVPEventListener implements Listener {
         if (!pvpManager.hasConsent(defender.getUniqueId())) {
             event.setCancelled(true);
             plugin.getMessageManager().sendAttemptMessage(defender, "pvp_not_consented_defender_anonymous");
+        }
+    }
+
+    // Blocks knockback (push/velocity) from player-fired projectiles and direct attacks
+    // where PVP consent is not mutual. Wind charge wind-burst fires this event with
+    // getPusher() returning the WindCharge projectile, whose getShooter() is the player.
+    @EventHandler
+    public void onEntityPushed(EntityPushedByEntityAttackEvent event) {
+        if (!(event.getEntity() instanceof Player defender)) return;
+
+        Entity pusher = event.getPusher();
+        Player attacker = null;
+
+        if (pusher instanceof Player playerPusher) {
+            attacker = playerPusher;
+        } else if (pusher instanceof Projectile projectile && projectile.getShooter() instanceof Player playerShooter) {
+            attacker = playerShooter;
+        }
+
+        if (attacker == null) return;
+        if (attacker.getUniqueId().equals(defender.getUniqueId())) return;
+
+        if (!defender.canSee(attacker)) {
+            event.setCancelled(true);
+            return;
+        }
+
+        PVPManager pvpManager = plugin.getPVPManager();
+        if (!pvpManager.hasConsent(attacker.getUniqueId()) || !pvpManager.hasConsent(defender.getUniqueId())) {
+            event.setCancelled(true);
         }
     }
 
