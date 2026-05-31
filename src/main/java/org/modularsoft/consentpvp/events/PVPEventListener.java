@@ -16,6 +16,7 @@ import org.bukkit.entity.ThrownPotion;
 import org.bukkit.event.EventHandler;
 import org.bukkit.event.Listener;
 import org.bukkit.event.block.BlockBreakEvent;
+import org.bukkit.event.block.BlockFadeEvent;
 import org.bukkit.event.block.BlockPlaceEvent;
 import org.bukkit.event.block.BlockIgniteEvent;
 import org.bukkit.event.entity.AreaEffectCloudApplyEvent;
@@ -134,8 +135,9 @@ public class PVPEventListener implements Listener {
 
         if (attackerId.equals(defender.getUniqueId())) return;
 
-        // Block attacks from vanished players (hidden via vanish plugin, not potion invisibility)
-        if (attacker != null && !defender.canSee(attacker)) {
+        // Block attacks from vanished players. Check both Bukkit's hidePlayer API and the
+        // "vanished" metadata key used by most modern vanish plugins as a fallback.
+        if (attacker != null && isVanished(attacker, defender)) {
             event.setCancelled(true);
             return;
         }
@@ -312,11 +314,26 @@ public class PVPEventListener implements Listener {
 
     @EventHandler
     public void onBlockIgnite(BlockIgniteEvent event) {
+        BlockIgniteEvent.IgniteCause cause = event.getCause();
+
+        // Track fire spread: if spread fire is near a player-placed fire, inherit its owner
+        if (cause == BlockIgniteEvent.IgniteCause.SPREAD) {
+            UUID nearbyOwner = plugin.getFireManager().getNearbyOwner(event.getBlock().getLocation(), 2);
+            if (nearbyOwner != null) {
+                plugin.getFireManager().addFire(event.getBlock(), nearbyOwner);
+            }
+            return;
+        }
+
+        if (cause != BlockIgniteEvent.IgniteCause.FLINT_AND_STEEL && cause != BlockIgniteEvent.IgniteCause.FIREBALL) return;
         if (event.getPlayer() == null) return;
-        if (event.getCause() != BlockIgniteEvent.IgniteCause.FLINT_AND_STEEL && event.getCause() != BlockIgniteEvent.IgniteCause.FIREBALL) return;
 
         Player attacker = event.getPlayer();
         PVPManager pvpManager = plugin.getPVPManager();
+
+        // Track this fire block regardless of nearby players — needed to protect against
+        // "place fire then push player into it" scenarios handled in onEntityDamage.
+        plugin.getFireManager().addFire(event.getBlock(), attacker.getUniqueId());
 
         for (Entity entity : event.getBlock().getWorld().getNearbyEntities(event.getBlock().getLocation().add(0.5, 0.5, 0.5), 0.5, 0.5, 0.5)) {
             if (entity instanceof Player defender) {
@@ -324,6 +341,7 @@ public class PVPEventListener implements Listener {
 
                 if (!pvpManager.hasConsent(attacker.getUniqueId()) || !pvpManager.hasConsent(defender.getUniqueId())) {
                     event.setCancelled(true);
+                    plugin.getFireManager().removeFire(event.getBlock());
                     if (defender.hasPotionEffect(PotionEffectType.INVISIBILITY)) {
                         plugin.getMessageManager().sendAttemptMessage(attacker, "pvp_not_consented_attacker_anonymous");
                     } else {
@@ -335,6 +353,13 @@ public class PVPEventListener implements Listener {
         }
     }
 
+    @EventHandler
+    public void onBlockFade(BlockFadeEvent event) {
+        if (event.getBlock().getType() == org.bukkit.Material.FIRE) {
+            plugin.getFireManager().removeFire(event.getBlock());
+        }
+    }
+
     // Prevent explosion damage for non-consenting players
     @EventHandler
     public void onEntityDamage(EntityDamageEvent event) {
@@ -343,21 +368,24 @@ public class PVPEventListener implements Listener {
         PVPManager pvpManager = plugin.getPVPManager();
 
         if (event.getCause() == EntityDamageEvent.DamageCause.LAVA) {
-            org.bukkit.Location loc = defender.getLocation();
-            org.bukkit.block.Block[] candidates = {
-                loc.getBlock(),
-                loc.clone().add(0, 1, 0).getBlock(),
-                loc.clone().subtract(0, 1, 0).getBlock()
-            };
-            for (org.bukkit.block.Block block : candidates) {
-                if (block.getType() == org.bukkit.Material.LAVA) {
-                    UUID lavaPlacer = plugin.getLavaManager().getOwner(block);
-                    if (lavaPlacer != null && !lavaPlacer.equals(defender.getUniqueId())) {
-                        if (!pvpManager.hasConsent(lavaPlacer) || !pvpManager.hasConsent(defender.getUniqueId())) {
-                            event.setCancelled(true);
-                        }
-                    }
-                    return;
+            // Search a radius because lava flows — the source block may not be the one the
+            // player is standing in. Lava flows up to 4 blocks from its source on flat ground.
+            UUID lavaPlacer = plugin.getLavaManager().getNearbyOwner(defender.getLocation(), 5);
+            if (lavaPlacer != null && !lavaPlacer.equals(defender.getUniqueId())) {
+                if (!pvpManager.hasConsent(lavaPlacer) || !pvpManager.hasConsent(defender.getUniqueId())) {
+                    event.setCancelled(true);
+                }
+            }
+            return;
+        }
+
+        if (event.getCause() == EntityDamageEvent.DamageCause.FIRE) {
+            // Covers the "place fire then push player into it" case. The fire block itself
+            // may be spread fire — getNearbyOwner searches within 3 blocks for the tracked source.
+            UUID firePlacer = plugin.getFireManager().getNearbyOwner(defender.getLocation(), 3);
+            if (firePlacer != null && !firePlacer.equals(defender.getUniqueId())) {
+                if (!pvpManager.hasConsent(firePlacer) || !pvpManager.hasConsent(defender.getUniqueId())) {
+                    event.setCancelled(true);
                 }
             }
             return;
@@ -393,7 +421,7 @@ public class PVPEventListener implements Listener {
         if (attacker == null) return;
         if (attacker.getUniqueId().equals(defender.getUniqueId())) return;
 
-        if (!defender.canSee(attacker)) {
+        if (isVanished(attacker, defender)) {
             event.setCancelled(true);
             return;
         }
@@ -426,5 +454,14 @@ public class PVPEventListener implements Listener {
             // The original attacker and target are in a consensual fight.
             // Bystanders should not be notified.
         }
+    }
+
+    // Returns true if the attacker is vanished (invisible to the defender).
+    // Checks both Bukkit's hidePlayer API and the "vanished" metadata key used by
+    // most modern vanish plugins (PremiumVanish, SuperVanish, CMI, etc.) as a fallback.
+    private boolean isVanished(Player attacker, Player defender) {
+        if (!defender.canSee(attacker)) return true;
+        if (attacker.hasMetadata("vanished")) return true;
+        return false;
     }
 }
