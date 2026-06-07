@@ -1,6 +1,7 @@
 package org.modularsoft.consentpvp.commands;
 
 import net.kyori.adventure.text.minimessage.MiniMessage;
+import org.bukkit.Bukkit;
 import org.bukkit.command.Command;
 import org.bukkit.command.CommandExecutor;
 import org.bukkit.command.CommandSender;
@@ -73,6 +74,7 @@ public class PVPCommand implements CommandExecutor {
                     return true;
                 }
                 pvpManager.setConsent(player.getUniqueId(), true);
+                plugin.getNameTagManager().updatePlayer(player);
                 cooldownManager.setCooldown(player.getUniqueId());
                 messageManager.sendMessage(player, "pvp_enabled");
                 break;
@@ -88,6 +90,7 @@ public class PVPCommand implements CommandExecutor {
                     return true;
                 }
                 pvpManager.setConsent(player.getUniqueId(), false);
+                plugin.getNameTagManager().updatePlayer(player);
                 cooldownManager.setCooldown(player.getUniqueId());
                 messageManager.sendMessage(player, "pvp_disabled");
                 break;
@@ -111,8 +114,26 @@ public class PVPCommand implements CommandExecutor {
                 String status = newValue ? "enabled" : "disabled";
                 messageManager.sendMessage(player, "pvp_death_toggle", "%status%", status);
                 break;
+            case "bypass":
+                if (!sender.hasPermission("consentpvp.admin")) {
+                    messageManager.sendMessage(sender, "no_permission");
+                    return true;
+                }
+                if (args.length < 2) {
+                    sender.sendMessage(miniMessage.deserialize(messagePrefix + "<red>Usage: /pvp bypass <player>"));
+                    return true;
+                }
+                Player bypassTarget = Bukkit.getPlayer(args[1]);
+                if (bypassTarget == null) {
+                    sender.sendMessage(miniMessage.deserialize(messagePrefix + "<red>Player not found: " + args[1]));
+                    return true;
+                }
+                cooldownManager.clearCooldown(bypassTarget.getUniqueId());
+                messageManager.sendMessage(sender, "bypass_cooldown_sender", "%player%", bypassTarget.getName());
+                messageManager.sendMessage(bypassTarget, "bypass_cooldown_target");
+                break;
             default:
-                sender.sendMessage(miniMessage.deserialize(messagePrefix + "<red>Usage: /pvp <enable|disable|death|status|reload>"));
+                sender.sendMessage(miniMessage.deserialize(messagePrefix + "<red>Usage: /pvp <enable|disable|bypass|death|status|reload>"));
                 break;
         }
 

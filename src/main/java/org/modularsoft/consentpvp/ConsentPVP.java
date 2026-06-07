@@ -1,6 +1,7 @@
 package org.modularsoft.consentpvp;
 
 import net.kyori.adventure.text.minimessage.MiniMessage;
+import org.bukkit.Bukkit;
 import org.bukkit.configuration.file.YamlConfiguration;
 import org.bukkit.plugin.java.JavaPlugin;
 import org.modularsoft.consentpvp.commands.PVPCommand;
@@ -21,23 +22,30 @@ public class ConsentPVP extends JavaPlugin {
     private MessageManager messageManager;
     private EndCrystalManager endCrystalManager;
     private RespawnAnchorManager respawnAnchorManager;
+    private LavaManager lavaManager;
+    private FireManager fireManager;
+    private NameTagManager nameTagManager;
 
     private MiniMessage miniMessage;
     private String messagePrefix;
     private boolean disablePvpOnDeath;
     private AttemptMessageDelivery attemptMessageDelivery;
     private boolean notifyDefenderOnDenial;
+    private boolean indicatorsEnabled;
 
     @Override
     public void onEnable() {
+        this.miniMessage = MiniMessage.miniMessage();
+
         // Initialize managers
         this.cooldownManager = new CooldownManager(this);
         this.pvpManager = new PVPManager(this);
         this.messageManager = new MessageManager(this);
         this.endCrystalManager = new EndCrystalManager();
         this.respawnAnchorManager = new RespawnAnchorManager();
-
-        this.miniMessage = MiniMessage.miniMessage();
+        this.lavaManager = new LavaManager();
+        this.fireManager = new FireManager();
+        this.nameTagManager = new NameTagManager(this);
 
         // Load configuration
         saveDefaultConfig();
@@ -78,6 +86,18 @@ public class ConsentPVP extends JavaPlugin {
         return respawnAnchorManager;
     }
 
+    public LavaManager getLavaManager() {
+        return lavaManager;
+    }
+
+    public FireManager getFireManager() {
+        return fireManager;
+    }
+
+    public NameTagManager getNameTagManager() {
+        return nameTagManager;
+    }
+
     public MiniMessage getMiniMessage() {
         return miniMessage;
     }
@@ -102,10 +122,30 @@ public class ConsentPVP extends JavaPlugin {
         return notifyDefenderOnDenial;
     }
 
+    public boolean areIndicatorsEnabled() {
+        return indicatorsEnabled;
+    }
+
+    @Override
+    public void onDisable() {
+        if (nameTagManager != null) {
+            nameTagManager.cleanup();
+        }
+    }
+
     public void reloadPluginConfig() {
         applyConfigDefaults();
         reloadConfig();
         loadSettings();
+
+        for (org.bukkit.entity.Player player : Bukkit.getOnlinePlayers()) {
+            pvpManager.loadConsentForPlayer(player);
+        }
+
+        if (nameTagManager != null) {
+            nameTagManager.loadConfig();
+            nameTagManager.updateAllPlayers();
+        }
     }
 
     private void applyConfigDefaults() {
@@ -135,5 +175,6 @@ public class ConsentPVP extends JavaPlugin {
             getConfig().getString("messages.pvp_attempt_delivery", "chat")
         );
         this.notifyDefenderOnDenial = getConfig().getBoolean("messages.notify-defender-on-denial", false);
+        this.indicatorsEnabled = getConfig().getBoolean("indicators.enabled", true);
     }
 }
