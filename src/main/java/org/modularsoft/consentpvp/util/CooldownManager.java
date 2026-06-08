@@ -35,6 +35,10 @@ public class CooldownManager {
         return cooldowns.get(playerId);
     }
 
+    public void clearCooldown(UUID playerId) {
+        cooldowns.remove(playerId);
+    }
+
     public void cleanupExpiredCooldowns() {
         long currentTime = System.currentTimeMillis();
         long cooldownDuration = TimeUnit.MINUTES.toMillis(plugin.getConfig().getLong("cooldown.duration"));

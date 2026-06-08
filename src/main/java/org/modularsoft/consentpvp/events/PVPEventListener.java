@@ -1,11 +1,37 @@
 package org.modularsoft.consentpvp.events;
 
-import org.bukkit.entity.*;
+import io.papermc.paper.event.entity.EntityPushedByEntityAttackEvent;
+import org.bukkit.Bukkit;
+import org.bukkit.OfflinePlayer;
+import org.bukkit.damage.DamageSource;
+import org.bukkit.entity.AreaEffectCloud;
+import org.bukkit.entity.EnderCrystal;
+import org.bukkit.entity.Entity;
+import org.bukkit.entity.minecart.ExplosiveMinecart;
+import org.bukkit.entity.LivingEntity;
+import org.bukkit.entity.Player;
+import org.bukkit.entity.Projectile;
+import org.bukkit.entity.TNTPrimed;
+import org.bukkit.entity.ThrownPotion;
 import org.bukkit.event.EventHandler;
 import org.bukkit.event.Listener;
-import org.bukkit.event.entity.*;
+import org.bukkit.event.block.BlockBreakEvent;
+import org.bukkit.event.block.BlockFadeEvent;
+import org.bukkit.event.block.BlockPlaceEvent;
+import org.bukkit.event.block.BlockIgniteEvent;
+import org.bukkit.event.entity.AreaEffectCloudApplyEvent;
+import org.bukkit.event.entity.EntityDamageByEntityEvent;
+import org.bukkit.event.entity.EntityDamageEvent;
+import org.bukkit.event.entity.EntityExplodeEvent;
+import org.bukkit.event.entity.EntityPlaceEvent;
+import org.bukkit.event.entity.PlayerDeathEvent;
+import org.bukkit.event.entity.PotionSplashEvent;
+import org.bukkit.event.player.PlayerBucketEmptyEvent;
+import org.bukkit.event.player.PlayerBucketFillEvent;
+import org.bukkit.event.player.PlayerInteractEvent;
 import org.bukkit.event.player.PlayerJoinEvent;
 import org.bukkit.event.player.PlayerQuitEvent;
+import org.bukkit.potion.PotionEffectType;
 import org.bukkit.projectiles.ProjectileSource;
 import org.modularsoft.consentpvp.ConsentPVP;
 import org.modularsoft.consentpvp.util.PVPManager;
@@ -13,6 +39,7 @@ import org.modularsoft.consentpvp.util.PVPManager;
 import java.util.ArrayList;
 import java.util.Iterator;
 import java.util.List;
+import java.util.UUID;
 
 public class PVPEventListener implements Listener {
 
@@ -25,121 +52,416 @@ public class PVPEventListener implements Listener {
     @EventHandler
     public void onPlayerJoin(PlayerJoinEvent event) {
         plugin.getPVPManager().loadConsentForPlayer(event.getPlayer());
+        plugin.getNameTagManager().updatePlayer(event.getPlayer());
     }
 
     @EventHandler
     public void onPlayerQuit(PlayerQuitEvent event) {
         plugin.getPVPManager().saveConsentForPlayer(event.getPlayer());
         plugin.getPVPManager().cleanupOfflinePlayers();
+        plugin.getNameTagManager().removePlayer(event.getPlayer());
     }
 
-    // Core: Handles most direct and indirect entity damage
     @EventHandler
     public void onEntityDamageByEntity(EntityDamageByEntityEvent event) {
-        if (!(event.getEntity() instanceof Player)) return;
-        Player defender = (Player) event.getEntity();
+        if (!(event.getEntity() instanceof Player defender)) return;
+
         PVPManager pvpManager = plugin.getPVPManager();
-
         Player attacker = null;
+        UUID attackerId = null;
+        String attackerName = null;
 
-        // Direct melee
-        if (event.getDamager() instanceof Player) {
-            attacker = (Player) event.getDamager();
+        if (event.getDamager() instanceof Player playerDamager) {
+            attacker = playerDamager;
+            attackerId = playerDamager.getUniqueId();
+            attackerName = playerDamager.getName();
+        } else if (event.getDamager() instanceof Projectile projectile) {
+            ProjectileSource shooter = projectile.getShooter();
+            if (shooter instanceof Player playerShooter) {
+                attacker = playerShooter;
+                attackerId = playerShooter.getUniqueId();
+                attackerName = playerShooter.getName();
+            }
+        } else if (event.getDamager() instanceof TNTPrimed tnt) {
+            if (tnt.getSource() instanceof Player playerSource) {
+                attacker = playerSource;
+                attackerId = playerSource.getUniqueId();
+                attackerName = playerSource.getName();
+            }
+        } else if (event.getDamager() instanceof ExplosiveMinecart tntMinecart) {
+            // ExplosiveMinecart doesn't have a direct source in Bukkit API easily
+            // But we can check for nearby players if we want to be aggressive,
+            // or just block damage to non-consenting players from explosives.
+        } else if (event.getDamager() instanceof EnderCrystal crystal) {
+            UUID ownerUUID = plugin.getEndCrystalManager().getOwner(crystal);
+            if (ownerUUID != null) {
+                attackerId = ownerUUID;
+                Player owner = plugin.getServer().getPlayer(ownerUUID);
+                if (owner != null) {
+                    attacker = owner;
+                    attackerName = owner.getName();
+                } else {
+                    OfflinePlayer offlineOwner = Bukkit.getOfflinePlayer(ownerUUID);
+                    attackerName = offlineOwner.getName();
+                }
+            }
         }
 
-        // Projectile (arrow, trident, snowball, egg, potion, firework, etc.)
-        else if (event.getDamager() instanceof Projectile) {
-            ProjectileSource shooter = ((Projectile) event.getDamager()).getShooter();
-            if (shooter instanceof Player) attacker = (Player) shooter;
+        if (attackerId == null) {
+            DamageSource damageSource = event.getDamageSource();
+            if (damageSource != null) {
+                Entity causingEntity = damageSource.getCausingEntity();
+                if (causingEntity instanceof Player causingPlayer) {
+                    attacker = causingPlayer;
+                    attackerId = causingPlayer.getUniqueId();
+                    attackerName = causingPlayer.getName();
+                }
+            }
         }
 
-        // TNT, End Crystal, Firework, etc.
-        else if (event.getDamager() instanceof TNTPrimed) {
-            TNTPrimed tnt = (TNTPrimed) event.getDamager();
-            if (tnt.getSource() instanceof Player) attacker = (Player) tnt.getSource();
+        if (attackerName == null && attacker != null) {
+            attackerName = attacker.getName();
         }
 
-        // Allow self-damage (such as Ender Pearl teleportation)
-        if (attacker.getUniqueId().equals(defender.getUniqueId())) {
-            return; // Do not cancel self-inflicted damage
-        }
-
-        if (attacker != null) {
-            if (!pvpManager.hasConsent(defender.getUniqueId()) || !pvpManager.hasConsent(attacker.getUniqueId())) {
+        if (attackerId == null) {
+            // If the damager is an explosive minecart or a general explosion, and the defender has PvP off, block it.
+            if ((event.getDamager() instanceof ExplosiveMinecart) && !pvpManager.hasConsent(defender.getUniqueId())) {
                 event.setCancelled(true);
-                plugin.getMessageManager().sendMessage(attacker, "pvp_not_consented_attacker", "%player%", defender.getName());
-                plugin.getMessageManager().sendMessage(defender, "pvp_not_consented_defender", "%player%", attacker.getName());
+                plugin.getMessageManager().sendAttemptMessage(defender, "pvp_not_consented_defender_anonymous");
+                return;
+            }
+            return;
+        }
+
+        if (attackerId.equals(defender.getUniqueId())) return;
+
+        // Block attacks from vanished players. Check both Bukkit's hidePlayer API and the
+        // "vanished" metadata key used by most modern vanish plugins as a fallback.
+        if (attacker != null && isVanished(attacker, defender)) {
+            event.setCancelled(true);
+            return;
+        }
+
+        boolean isSweepAttack = event.getCause() == EntityDamageEvent.DamageCause.ENTITY_SWEEP_ATTACK;
+
+        if (!pvpManager.hasConsent(attackerId) || !pvpManager.hasConsent(defender.getUniqueId())) {
+            event.setCancelled(true);
+            if (!isSweepAttack && attacker != null) {
+                if (defender.hasPotionEffect(PotionEffectType.INVISIBILITY)) {
+                    plugin.getMessageManager().sendAttemptMessage(attacker, "pvp_not_consented_attacker_anonymous");
+                } else {
+                    plugin.getMessageManager().sendAttemptMessage(attacker, "pvp_not_consented_attacker", "%player%", defender.getName());
+                }
+            }
+            if (!isSweepAttack && plugin.shouldNotifyDefenderOnDenial() && attackerName != null) {
+                if (attacker != null && attacker.hasPotionEffect(PotionEffectType.INVISIBILITY)) {
+                    plugin.getMessageManager().sendAttemptMessage(defender, "pvp_not_consented_defender_anonymous");
+                } else {
+                    plugin.getMessageManager().sendAttemptMessage(defender, "pvp_not_consented_defender", "%player%", attackerName);
+                }
             }
         }
     }
 
-    // Potions: Splash
     @EventHandler
     public void onPotionSplash(PotionSplashEvent event) {
-        if (!(event.getPotion().getShooter() instanceof Player)) return;
-        Player attacker = (Player) event.getPotion().getShooter();
-        PVPManager pvpManager = plugin.getPVPManager();
+        if (!(event.getPotion().getShooter() instanceof Player attacker)) return;
 
-        List<String> nonConsentedDefenders = new ArrayList<>();
+        PVPManager pvpManager = plugin.getPVPManager();
+        List<String> nonConsented = new ArrayList<>();
 
         event.getAffectedEntities().forEach(entity -> {
-            if (entity instanceof Player) {
-                Player defender = (Player) entity;
+            if (entity instanceof Player defender) {
+                if (attacker.equals(defender)) return;
 
-                // Allow self-harm: skip consent check if attacker == defender
-                if (attacker.getUniqueId().equals(defender.getUniqueId())) {
-                    return;
-                }
-
-                if (!pvpManager.hasConsent(defender.getUniqueId()) || !pvpManager.hasConsent(attacker.getUniqueId())) {
+                if (!pvpManager.hasConsent(attacker.getUniqueId()) || !pvpManager.hasConsent(defender.getUniqueId())) {
                     event.setIntensity(defender, 0);
-                    nonConsentedDefenders.add(defender.getName());
-                    plugin.getMessageManager().sendMessage(defender, "pvp_not_consented_defender", "%player%", attacker.getName());
+                    nonConsented.add(defender.getName());
+                    if (plugin.shouldNotifyDefenderOnDenial()) {
+                        plugin.getMessageManager().sendAttemptMessage(defender, "pvp_not_consented_defender", "%player%", attacker.getName());
+                    }
                 }
             }
         });
 
-        if (!nonConsentedDefenders.isEmpty()) {
-            String joinedNames = String.join(", ", nonConsentedDefenders);
-            plugin.getMessageManager().sendMessage(attacker, "pvp_not_consented_attacker_multiple", "%players%", joinedNames);
+        if (!nonConsented.isEmpty()) {
+            String names = String.join(", ", nonConsented);
+            plugin.getMessageManager().sendAttemptMessage(attacker, "pvp_not_consented_attacker_multiple", "%players%", names);
         }
     }
 
-    // Potions: Lingering (Area Effect Cloud)
     @EventHandler
     public void onAreaEffectCloudApply(AreaEffectCloudApplyEvent event) {
         AreaEffectCloud cloud = event.getEntity();
-        if (!(cloud.getSource() instanceof ThrownPotion)) return;
+        if (!(cloud.getSource() instanceof ThrownPotion potion)) return;
+        if (!(potion.getShooter() instanceof Player attacker)) return;
 
-        ThrownPotion potion = (ThrownPotion) cloud.getSource();
-        if (!(potion.getShooter() instanceof Player)) return;
-
-        Player attacker = (Player) potion.getShooter();
         PVPManager pvpManager = plugin.getPVPManager();
-
-        List<String> nonConsentedDefenders = new ArrayList<>();
+        List<String> nonConsented = new ArrayList<>();
         Iterator<LivingEntity> it = event.getAffectedEntities().iterator();
+
         while (it.hasNext()) {
             LivingEntity entity = it.next();
-            if (entity instanceof Player) {
-                Player defender = (Player) entity;
+            if (entity instanceof Player defender) {
+                if (attacker.equals(defender)) continue;
 
-                // Allow self-harm: skip consent check if attacker == defender
-                if (attacker.getUniqueId().equals(defender.getUniqueId())) {
-                    continue;
-                }
-
-                if (!pvpManager.hasConsent(defender.getUniqueId()) || !pvpManager.hasConsent(attacker.getUniqueId())) {
+                if (!pvpManager.hasConsent(attacker.getUniqueId()) || !pvpManager.hasConsent(defender.getUniqueId())) {
                     it.remove();
-                    nonConsentedDefenders.add(defender.getName());
-                    plugin.getMessageManager().sendMessage(defender, "pvp_not_consented_defender", "%player%", attacker.getName());
+                    nonConsented.add(defender.getName());
+                    if (plugin.shouldNotifyDefenderOnDenial()) {
+                        plugin.getMessageManager().sendAttemptMessage(defender, "pvp_not_consented_defender", "%player%", attacker.getName());
+                    }
                 }
             }
         }
 
-        if (!nonConsentedDefenders.isEmpty()) {
-            String joinedNames = String.join(", ", nonConsentedDefenders);
-            plugin.getMessageManager().sendMessage(attacker, "pvp_not_consented_attacker_multiple", "%players%", joinedNames);
+        if (!nonConsented.isEmpty()) {
+            String names = String.join(", ", nonConsented);
+            plugin.getMessageManager().sendAttemptMessage(attacker, "pvp_not_consented_attacker_multiple", "%players%", names);
         }
+    }
+
+    @EventHandler
+    public void onPlayerDeath(PlayerDeathEvent event) {
+        if (plugin.isPvpDisabledOnDeath()) {
+            Player player = event.getEntity();
+            plugin.getPVPManager().setConsent(player.getUniqueId(), false);
+            plugin.getNameTagManager().updatePlayer(player);
+            plugin.getMessageManager().sendMessage(player, "pvp_disabled_on_death");
+        }
+    }
+
+    @EventHandler
+    public void onPlayerInteract(PlayerInteractEvent event) {
+        if (!event.getAction().isRightClick() || event.getItem() == null) return;
+
+        Player player = event.getPlayer();
+
+        if (event.getItem().getType() == org.bukkit.Material.END_CRYSTAL) {
+            plugin.getServer().getScheduler().runTaskLater(plugin, () -> {
+                for (Entity entity : player.getNearbyEntities(5, 5, 5)) {
+                    if (entity instanceof EnderCrystal crystal) {
+                        plugin.getEndCrystalManager().addCrystal(crystal, player.getUniqueId());
+                    }
+                }
+            }, 1L);
+        }
+
+        else if (
+                event.getItem().getType() == org.bukkit.Material.GLOWSTONE &&
+                        event.getClickedBlock() != null &&
+                        event.getClickedBlock().getType() == org.bukkit.Material.RESPAWN_ANCHOR
+        ) {
+            UUID ownerUUID = plugin.getRespawnAnchorManager().getOwner(event.getClickedBlock());
+            if (ownerUUID != null && !ownerUUID.equals(player.getUniqueId())) {
+                Player owner = plugin.getServer().getPlayer(ownerUUID);
+                if (owner != null && (!plugin.getPVPManager().hasConsent(owner.getUniqueId()) || !plugin.getPVPManager().hasConsent(player.getUniqueId()))) {
+                    event.setCancelled(true);
+                    plugin.getMessageManager().sendAttemptMessage(player, "pvp_not_consented_attacker", "%player%", owner.getName());
+                }
+            }
+        }
+    }
+
+    @EventHandler
+    public void onEntityExplode(EntityExplodeEvent event) {
+        if (event.getEntity() instanceof EnderCrystal crystal) {
+            plugin.getEndCrystalManager().removeCrystal(crystal);
+        }
+    }
+
+    @EventHandler
+    public void onEntityPlace(EntityPlaceEvent event) {
+        if (event.getEntity() instanceof EnderCrystal crystal) {
+            plugin.getEndCrystalManager().addCrystal(crystal, event.getPlayer().getUniqueId());
+        }
+    }
+
+    @EventHandler
+    public void onBlockPlace(BlockPlaceEvent event) {
+        if (event.getBlock().getType() == org.bukkit.Material.RESPAWN_ANCHOR) {
+            plugin.getRespawnAnchorManager().addAnchor(event.getBlock(), event.getPlayer().getUniqueId());
+        }
+        if (event.getBlock().getType() == org.bukkit.Material.LAVA) {
+            plugin.getLavaManager().addLava(event.getBlock(), event.getPlayer().getUniqueId());
+        }
+    }
+
+    @EventHandler
+    public void onBlockBreak(BlockBreakEvent event) {
+        if (event.getBlock().getType() == org.bukkit.Material.RESPAWN_ANCHOR) {
+            plugin.getRespawnAnchorManager().removeAnchor(event.getBlock());
+        }
+        if (event.getBlock().getType() == org.bukkit.Material.LAVA) {
+            plugin.getLavaManager().removeLava(event.getBlock());
+        }
+    }
+
+    @EventHandler
+    public void onPlayerBucketEmpty(PlayerBucketEmptyEvent event) {
+        if (event.getBucket() == org.bukkit.Material.LAVA_BUCKET) {
+            org.bukkit.block.Block placed = event.getBlock().getRelative(event.getBlockFace());
+            plugin.getLavaManager().addLava(placed, event.getPlayer().getUniqueId());
+        }
+    }
+
+    @EventHandler
+    public void onPlayerBucketFill(PlayerBucketFillEvent event) {
+        if (event.getItemStack().getType() == org.bukkit.Material.LAVA_BUCKET) {
+            plugin.getLavaManager().removeLava(event.getBlock());
+        }
+    }
+
+    @EventHandler
+    public void onBlockIgnite(BlockIgniteEvent event) {
+        BlockIgniteEvent.IgniteCause cause = event.getCause();
+
+        // Track fire spread: if spread fire is near a player-placed fire, inherit its owner
+        if (cause == BlockIgniteEvent.IgniteCause.SPREAD) {
+            UUID nearbyOwner = plugin.getFireManager().getNearbyOwner(event.getBlock().getLocation(), 2);
+            if (nearbyOwner != null) {
+                plugin.getFireManager().addFire(event.getBlock(), nearbyOwner);
+            }
+            return;
+        }
+
+        if (cause != BlockIgniteEvent.IgniteCause.FLINT_AND_STEEL && cause != BlockIgniteEvent.IgniteCause.FIREBALL) return;
+        if (event.getPlayer() == null) return;
+
+        Player attacker = event.getPlayer();
+        PVPManager pvpManager = plugin.getPVPManager();
+
+        // Track this fire block regardless of nearby players — needed to protect against
+        // "place fire then push player into it" scenarios handled in onEntityDamage.
+        plugin.getFireManager().addFire(event.getBlock(), attacker.getUniqueId());
+
+        for (Entity entity : event.getBlock().getWorld().getNearbyEntities(event.getBlock().getLocation().add(0.5, 0.5, 0.5), 0.5, 0.5, 0.5)) {
+            if (entity instanceof Player defender) {
+                if (attacker.equals(defender)) continue;
+
+                if (!pvpManager.hasConsent(attacker.getUniqueId()) || !pvpManager.hasConsent(defender.getUniqueId())) {
+                    event.setCancelled(true);
+                    plugin.getFireManager().removeFire(event.getBlock());
+                    if (defender.hasPotionEffect(PotionEffectType.INVISIBILITY)) {
+                        plugin.getMessageManager().sendAttemptMessage(attacker, "pvp_not_consented_attacker_anonymous");
+                    } else {
+                        plugin.getMessageManager().sendAttemptMessage(attacker, "pvp_not_consented_attacker", "%player%", defender.getName());
+                    }
+                    return;
+                }
+            }
+        }
+    }
+
+    @EventHandler
+    public void onBlockFade(BlockFadeEvent event) {
+        if (event.getBlock().getType() == org.bukkit.Material.FIRE) {
+            plugin.getFireManager().removeFire(event.getBlock());
+        }
+    }
+
+    // Prevent explosion damage for non-consenting players
+    @EventHandler
+    public void onEntityDamage(EntityDamageEvent event) {
+        if (!(event.getEntity() instanceof Player defender)) return;
+
+        PVPManager pvpManager = plugin.getPVPManager();
+
+        if (event.getCause() == EntityDamageEvent.DamageCause.LAVA) {
+            // Search a radius because lava flows — the source block may not be the one the
+            // player is standing in. Lava flows up to 4 blocks from its source on flat ground.
+            UUID lavaPlacer = plugin.getLavaManager().getNearbyOwner(defender.getLocation(), 5);
+            if (lavaPlacer != null && !lavaPlacer.equals(defender.getUniqueId())) {
+                if (!pvpManager.hasConsent(lavaPlacer) || !pvpManager.hasConsent(defender.getUniqueId())) {
+                    event.setCancelled(true);
+                }
+            }
+            return;
+        }
+
+        if (event.getCause() == EntityDamageEvent.DamageCause.FIRE) {
+            // Covers the "place fire then push player into it" case. The fire block itself
+            // may be spread fire — getNearbyOwner searches within 3 blocks for the tracked source.
+            UUID firePlacer = plugin.getFireManager().getNearbyOwner(defender.getLocation(), 3);
+            if (firePlacer != null && !firePlacer.equals(defender.getUniqueId())) {
+                if (!pvpManager.hasConsent(firePlacer) || !pvpManager.hasConsent(defender.getUniqueId())) {
+                    event.setCancelled(true);
+                }
+            }
+            return;
+        }
+
+        if (event.getCause() != EntityDamageEvent.DamageCause.BLOCK_EXPLOSION && event.getCause() != EntityDamageEvent.DamageCause.ENTITY_EXPLOSION) return;
+
+        // If it's EntityDamageByEntityEvent, it's already handled by onEntityDamageByEntity
+        if (event instanceof EntityDamageByEntityEvent) return;
+
+        if (!pvpManager.hasConsent(defender.getUniqueId())) {
+            event.setCancelled(true);
+            plugin.getMessageManager().sendAttemptMessage(defender, "pvp_not_consented_defender_anonymous");
+        }
+    }
+
+    // Blocks knockback (push/velocity) from player-fired projectiles and direct attacks
+    // where PVP consent is not mutual. Wind charge wind-burst fires this event with
+    // getPusher() returning the WindCharge projectile, whose getShooter() is the player.
+    @EventHandler
+    public void onEntityPushed(EntityPushedByEntityAttackEvent event) {
+        if (!(event.getEntity() instanceof Player defender)) return;
+
+        Entity pusher = event.getPushedBy();
+        Player attacker = null;
+
+        if (pusher instanceof Player playerPusher) {
+            attacker = playerPusher;
+        } else if (pusher instanceof Projectile projectile && projectile.getShooter() instanceof Player playerShooter) {
+            attacker = playerShooter;
+        }
+
+        if (attacker == null) return;
+        if (attacker.getUniqueId().equals(defender.getUniqueId())) return;
+
+        if (isVanished(attacker, defender)) {
+            event.setCancelled(true);
+            return;
+        }
+
+        PVPManager pvpManager = plugin.getPVPManager();
+        if (!pvpManager.hasConsent(attacker.getUniqueId()) || !pvpManager.hasConsent(defender.getUniqueId())) {
+            event.setCancelled(true);
+        }
+    }
+
+    // Handles Mace AOE Smash Attack
+    @EventHandler
+    public void onEntitySweepAttack(EntityDamageByEntityEvent event) {
+        if (event.getCause() != EntityDamageEvent.DamageCause.ENTITY_SWEEP_ATTACK) return;
+        if (!(event.getEntity() instanceof Player)) return;
+        if (!(event.getDamager() instanceof Player)) return;
+
+        Player defender = (Player) event.getEntity();
+        Player attacker = (Player) event.getDamager();
+        PVPManager pvpManager = plugin.getPVPManager();
+
+        // Allow self-damage
+        if (attacker.getUniqueId().equals(defender.getUniqueId())) {
+            return;
+        }
+
+        if (!pvpManager.hasConsent(defender.getUniqueId()) || !pvpManager.hasConsent(attacker.getUniqueId())) {
+            event.setCancelled(true);
+            // Silently cancel the event to prevent message spam in chat.
+            // The original attacker and target are in a consensual fight.
+            // Bystanders should not be notified.
+        }
+    }
+
+    // Returns true if the attacker is vanished (invisible to the defender).
+    // Checks both Bukkit's hidePlayer API and the "vanished" metadata key used by
+    // most modern vanish plugins (PremiumVanish, SuperVanish, CMI, etc.) as a fallback.
+    private boolean isVanished(Player attacker, Player defender) {
+        if (!defender.canSee(attacker)) return true;
+        if (attacker.hasMetadata("vanished")) return true;
+        return false;
     }
 }
