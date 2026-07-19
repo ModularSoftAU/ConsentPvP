@@ -2,7 +2,7 @@
 
 ## Overview
 
-**ConsentPVP** is a Minecraft plugin that enhances player versus player (PvP) interactions by requiring mutual consent before any combat can occur. The plugin empowers players to control their PvP status, send and accept PvP requests, and ensures fair gameplay by preventing unconsented PvP in all forms.
+**ConsentPVP** is a Minecraft plugin that enhances player versus player (PvP) interactions by requiring mutual consent before any combat can occur. The plugin empowers players to toggle their own PvP status and ensures fair gameplay by preventing unconsented PvP in all forms.
 
 ---
 
@@ -12,6 +12,13 @@
 - **Cooldowns:** Admins can configure cooldown periods between PvP toggles to prevent abuse.
 - **Customizable Messages:** Supports MiniMessage formatting for rich, customizable in-game messages.
 - **Comprehensive Protection:** Blocks all direct and indirect forms of PvP damage unless both players have consented.
+
+---
+
+## Requirements
+
+- **Server Software:** Paper (or a Paper fork) 1.21.x
+- **Java:** 21+
 
 ---
 
@@ -25,14 +32,15 @@
 
 ## Commands
 
-| Command           | Description                                    |
-|-------------------|------------------------------------------------|
-| `/pvp`            | Displays your PvP status.                      |
-| `/pvp status`     | Displays your PvP status.                      |
-| `/pvp enable`     | Enable PvP consent for yourself.               |
-| `/pvp disable`    | Disable PvP consent for yourself.              |
-| `/pvp death`      | Toggles whether PVP is disabled on death.      |
-| `/pvp reload`     | Reloads the plugin configuration.              |
+| Command                 | Description                                                        |
+|-------------------------|---------------------------------------------------------------------|
+| `/pvp`                  | Displays your PvP status.                                          |
+| `/pvp status`           | Displays your PvP status.                                          |
+| `/pvp enable`           | Enable PvP consent for yourself.                                   |
+| `/pvp disable`          | Disable PvP consent for yourself.                                  |
+| `/pvp death`            | *(Admin)* Toggles the server-wide `disable-on-death` setting.       |
+| `/pvp bypass <player>`  | *(Admin)* Clears a player's PvP toggle cooldown.                   |
+| `/pvp reload`           | *(Admin)* Reloads the plugin configuration.                        |
 
 ---
 
@@ -68,17 +76,32 @@ messages:
   pvp_disabled: "<red>PVP consent disabled."
   on_cooldown: "<red>You must wait %time% before toggling PVP again."
   pvp_not_consented_attacker: "<red>You tried to hit %player% but PVP is not consented."
+  pvp_not_consented_attacker_anonymous: "<red>You tried to hit an anonymous player but PVP is not consented."
   pvp_not_consented_defender: "<red>%player% tried to hit you but PVP is not consented."
+  pvp_not_consented_defender_anonymous: "<red>Anonymous tried attacking you but pvp is not consented."
   pvp_not_consented_attacker_multiple: "<red>You tried to hit %players% but PVP is not consented."
   no_permission: "<red>You don't have permission to use this command."
   pvp_death_toggle: "<green>PVP disable on death is now %status%."
   config_reloaded: "<green>ConsentPVP configuration reloaded."
   pvp_disabled_on_death: "<red>Your PVP has been disabled due to your death."
   pvp_status: "<white>Your PVP status is currently <green>%status%<white>."
+  bypass_cooldown_sender: "<green>Cleared PVP cooldown for %player%."
+  bypass_cooldown_target: "<green>Your PVP cooldown has been cleared by a staff member."
+
+indicators:
+  # If true, a visual indicator will be shown above player's heads indicating their PVP status.
+  enabled: true
+  # If true, the plugin will force its own indicators even if it overwrites name tags from other plugins.
+  force: false
+  # The prefix shown for players with PVP enabled.
+  pvp-enabled-prefix: "<green>⚔ </green>"
+  # The prefix shown for players with PVP disabled.
+  pvp-disabled-prefix: "<red>⚔ </red>"
 ```
 
 - `pvp_attempt_delivery` lets you move PvP denial notifications to the action bar instead of chat.
 - `notify-defender-on-denial` controls whether the defender sees denial notifications.
+- `indicators` controls the optional above-head PvP status prefix; `force` lets it overwrite name tags set by other plugins.
 
 ## Usage
 
